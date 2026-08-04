@@ -1,0 +1,13 @@
+# 密钥与环境变量（切勿提交）
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+
+# 生成的运行产物（如需保留历史榜单可删掉此行）
+public/data.json
+
+# 本地项目记忆（不进仓库）
+.workbuddy/

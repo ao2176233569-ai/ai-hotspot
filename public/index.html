@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 热点 · 每日聚合</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1f2329;
+    --sub: #6b7280;
+    --line: #e5e7eb;
+    --arxiv: #b31b1b;
+    --github: #24292f;
+    --hf: #ffb000;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #fff;
+    padding: 28px 20px 22px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 24px; }
+  header p { margin: 0; color: #cbd5e1; font-size: 13px; }
+  .toolbar {
+    max-width: 1080px; margin: 18px auto; padding: 0 20px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  }
+  .filters { display: flex; gap: 6px; }
+  .filters button {
+    border: 1px solid var(--line); background: #fff; color: var(--text);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 13px;
+    transition: all .15s;
+  }
+  .filters button.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .toolbar select, .toolbar input {
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+    font-size: 13px; background: #fff; color: var(--text);
+  }
+  .toolbar input { flex: 1; min-width: 160px; }
+  .grid {
+    max-width: 1080px; margin: 0 auto; padding: 10px 20px 50px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    transition: box-shadow .15s, transform .15s;
+  }
+  .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
+  .card-top { display: flex; justify-content: space-between; align-items: center; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; color: #fff; }
+  .badge-arxiv { background: var(--arxiv); }
+  .badge-github { background: var(--github); }
+  .badge-huggingface { background: var(--hf); color: #1f2329; }
+  .rank { font-size: 12px; color: var(--sub); font-weight: 600; }
+  .card h3 { margin: 0; font-size: 15px; line-height: 1.4; }
+  .card h3 a { color: var(--text); text-decoration: none; }
+  .card h3 a:hover { color: var(--accent); text-decoration: underline; }
+  .summary { font-size: 13.5px; color: var(--text); margin: 0; }
+  .desc { font-size: 12.5px; color: var(--sub); margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--sub); }
+  .heat { flex: 1; height: 6px; background: #eef0f3; border-radius: 4px; overflow: hidden; }
+  .heat-bar { height: 100%; background: linear-gradient(90deg, #60a5fa, #2563eb); }
+  .heat-num { font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; }
+  .empty { text-align: center; color: var(--sub); padding: 60px 20px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>AI 热点 · 每日聚合</h1>
+    <p id="subtitle">自动聚合 arXiv / GitHub / Hugging Face 最火 AI 内容，并用中文摘要</p>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="filters" id="filters">
+    <button data-src="all" class="active">全部</button>
+    <button data-src="arxiv">arXiv</button>
+    <button data-src="github">GitHub</button>
+    <button data-src="huggingface">Hugging Face</button>
+  </div>
+  <select id="sort">
+    <option value="heat">按热度排序</option>
+    <option value="time">按最新排序</option>
+  </select>
+  <input id="search" type="text" placeholder="搜索标题 / 摘要 / 标签…" />
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+let DATA = { items: [] };
+let state = { src: "all", sort: "heat", q: "" };
+
+const SRC_LABEL = { arxiv: "arXiv", github: "GitHub", huggingface: "Hugging Face" };
+const MAX_W = 0.5; // 热度满分基准（GitHub 权重）
+
+async function load() {
+  try {
+    const res = await fetch("./data.json", { cache: "no-store" });
+    DATA = await res.json();
+  } catch (e) {
+    document.getElementById("grid").innerHTML =
+      '<div class="empty">未能加载 data.json，请先运行聚合脚本生成数据。</div>';
+    return;
+  }
+  const g = DATA.generated_at || "";
+  document.getElementById("subtitle").textContent =
+    `更新于 ${g} ｜ 权重 GitHub 0.5 / HF 0.3 / arXiv 0.2 ｜ 共 ${DATA.count || 0} 条`;
+  render();
+}
+
+function metricText(it) {
+  const e = it.extra || {};
+  if (it.source === "github") return e.stars != null ? `★ ${e.stars.toLocaleString()}` : "";
+  if (it.source === "huggingface")
+    return [e.likes ? `♥ ${e.likes.toLocaleString()}` : "",
+            e.downloads ? `⬇ ${e.downloads.toLocaleString()}` : ""].filter(Boolean).join(" · ");
+  return "";
+}
+
+function render() {
+  let items = DATA.items.filter(it => state.src === "all" || it.source === state.src);
+  if (state.q) {
+    const q = state.q.toLowerCase();
+    items = items.filter(it =>
+      (it.title + " " + (it.summary || "") + " " + (it.description || "")).toLowerCase().includes(q));
+  }
+  if (state.sort === "heat") items.sort((a, b) => b.heat_score - a.heat_score);
+  else items.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+
+  const grid = document.getElementById("grid");
+  if (!items.length) { grid.innerHTML = '<div class="empty">没有匹配的内容。</div>'; return; }
+
+  grid.innerHTML = items.map(it => {
+    const w = Math.min(100, Math.round((it.heat_score / MAX_W) * 100));
+    const summary = it.summary ? `<p class="summary">${esc(it.summary)}</p>`
+                               : `<p class="desc">${esc(it.description || "")}</p>`;
+    const tags = [];
+    const mt = metricText(it);
+    if (mt) tags.push(`<span class="tag">${mt}</span>`);
+    if (it.extra && it.extra.language) tags.push(`<span class="tag">${esc(it.extra.language)}</span>`);
+    if (it.extra && it.extra.pipeline_tag) tags.push(`<span class="tag">${esc(it.extra.pipeline_tag)}</span>`);
+    return `<article class="card">
+      <div class="card-top">
+        <span class="badge badge-${it.source}">${SRC_LABEL[it.source]}</span>
+        <span class="rank">#${it.rank}</span>
+      </div>
+      <h3><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
+      ${summary}
+      <div class="meta">
+        <div class="heat"><div class="heat-bar" style="width:${w}%"></div></div>
+        <span class="heat-num">热度 ${it.heat_score.toFixed(2)}</span>
+        <span>${it.published || ""}</span>
+      </div>
+      <div class="tags">${tags.join("")}</div>
+    </article>`;
+  }).join("");
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+document.getElementById("filters").addEventListener("click", e => {
+  if (e.target.tagName !== "BUTTON") return;
+  document.querySelectorAll("#filters button").forEach(b => b.classList.remove("active"));
+  e.target.classList.add("active");
+  state.src = e.target.dataset.src;
+  render();
+});
+document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
+document.getElementById("search").addEventListener("input", e => { state.q = e.target.value; render(); });
+
+load();
+</script>
+</body>
+</html>
