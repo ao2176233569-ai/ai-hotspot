@@ -60,15 +60,21 @@ HF_LIMIT     = 30
 WEIGHTS      = {"github": 0.5, "huggingface": 0.3, "arxiv": 0.2}
 KEEP_TOP_N   = 60
 
+def env(key, default):
+    """读环境变量；为空或仅空白时回退到默认值（避免空 Secret 覆盖默认配置）。"""
+    v = os.environ.get(key, "")
+    v = v.strip()
+    return v if v else default
+
 PRIMARY = {
-    "base":  os.environ.get("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1"),
-    "key":   os.environ.get("LLM_API_KEY", ""),
-    "model": os.environ.get("LLM_MODEL", "agnes-2.0-flash"),
+    "base":  env("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1"),
+    "key":   env("LLM_API_KEY", ""),
+    "model": env("LLM_MODEL", "agnes-2.0-flash"),
 }
 FALLBACK = {
-    "base":  os.environ.get("FALLBACK_BASE_URL", "https://apihub.agnes-ai.com/v1"),
-    "key":   os.environ.get("FALLBACK_API_KEY", ""),
-    "model": os.environ.get("FALLBACK_MODEL", "agnes-2.0-flash"),
+    "base":  env("FALLBACK_BASE_URL", "https://apihub.agnes-ai.com/v1"),
+    "key":   env("FALLBACK_API_KEY", ""),
+    "model": env("FALLBACK_MODEL", "agnes-2.0-flash"),
 }
 
 
