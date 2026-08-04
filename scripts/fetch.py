@@ -14,7 +14,7 @@ AI 热点聚合脚本
 环境变量（正式模式）：
   LLM_API_KEY     主用模型 Key（默认平台 agnes，https://apihub.agnes-ai.com/v1）
   LLM_BASE_URL    主用模型 Base URL（默认 https://apihub.agnes-ai.com/v1）
-  LLM_MODEL       主用模型名（默认 agnes2.0flash）
+  LLM_MODEL       主用模型名（默认 agnes-2.0-flash）
   FALLBACK_API_KEY / FALLBACK_BASE_URL / FALLBACK_MODEL  备用模型（可同平台不同 Key）
 未设置任何 Key 时，摘要字段留空，脚本仍会产出 data.json（用原文做兜底展示）。
 本地可用 .env 文件（参考 .env.example）放置以上变量，脚本启动时会自动加载。
@@ -63,12 +63,12 @@ KEEP_TOP_N   = 60
 PRIMARY = {
     "base":  os.environ.get("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1"),
     "key":   os.environ.get("LLM_API_KEY", ""),
-    "model": os.environ.get("LLM_MODEL", "agnes2.0flash"),
+    "model": os.environ.get("LLM_MODEL", "agnes-2.0-flash"),
 }
 FALLBACK = {
     "base":  os.environ.get("FALLBACK_BASE_URL", "https://apihub.agnes-ai.com/v1"),
     "key":   os.environ.get("FALLBACK_API_KEY", ""),
-    "model": os.environ.get("FALLBACK_MODEL", "agnes2.0flash"),
+    "model": os.environ.get("FALLBACK_MODEL", "agnes-2.0-flash"),
 }
 
 
@@ -222,7 +222,7 @@ def call_llm(system, user):
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
         "temperature": 0.3,
-        "max_tokens": 120,
+        "max_tokens": 400,
     }
     for cfg in (PRIMARY, FALLBACK):
         if not cfg["key"]:
