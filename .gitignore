@@ -11,3 +11,9 @@ public/data.json
 
 # 本地项目记忆（不进仓库）
 .workbuddy/
+
+# 临时验证文件
+_d.json
+_idx.html
+_check.json
+_d.json
