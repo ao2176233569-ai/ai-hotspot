@@ -68,6 +68,9 @@
   .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
   .card-top { display: flex; justify-content: space-between; align-items: center; }
   .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; color: #fff; }
+  .badge-arxiv { background: var(--arxiv); }
+  .badge-github { background: var(--github); }
+  .badge-huggingface { background: var(--hf); color: #1f2329; }
   .rank { font-size: 12px; color: var(--sub); font-weight: 600; }
   .card h3 { margin: 0; font-size: 15px; line-height: 1.4; }
   .card h3 a { color: var(--text); text-decoration: none; }
@@ -88,13 +91,18 @@
 <header>
   <div class="wrap">
     <h1>AI 热点 · 每日聚合</h1>
-    <p id="subtitle">GitHub 热门 AI 项目 · 按领域分类并生成中文摘要</p>
+    <p id="subtitle">自动聚合 arXiv / GitHub / Hugging Face 最火 AI 内容，并用中文摘要</p>
     <p class="updated"><span class="dot"></span><span id="updated-text">最后更新：加载中…</span></p>
   </div>
 </header>
 
 <div class="toolbar">
-  <div class="filters" id="filters"></div>
+  <div class="filters" id="filters">
+    <button data-src="all" class="active">全部</button>
+    <button data-src="arxiv">arXiv</button>
+    <button data-src="github">GitHub</button>
+    <button data-src="huggingface">Hugging Face</button>
+  </div>
   <select id="sort">
     <option value="heat">按热度排序</option>
     <option value="time">按最新排序</option>
@@ -106,23 +114,10 @@
 
 <script>
 let DATA = { items: [] };
-let state = { cat: "all", sort: "heat", q: "" };
+let state = { src: "all", sort: "heat", q: "" };
 
-// 分类配色（与 fetch.py 的 CATEGORIES 保持一致）
-const CAT_COLOR = {
-  "大模型 / LLM": "#2563eb",
-  "智能体 / Agent": "#7c3aed",
-  "多模态 / 视觉": "#db2777",
-  "检索增强 / RAG": "#0891b2",
-  "训练 / 微调": "#d97706",
-  "推理 / 部署": "#059669",
-  "语音 / 音频": "#dc2626",
-  "框架 / 工具": "#4b5563",
-  "其他": "#9ca3af",
-};
-const DEFAULT_CATS = ["大模型 / LLM", "智能体 / Agent", "多模态 / 视觉", "检索增强 / RAG",
-                      "训练 / 微调", "推理 / 部署", "语音 / 音频", "框架 / 工具", "其他"];
-const MAX_W = 1.0; // 热度满分（log 缩放后的最高 star 项目）
+const SRC_LABEL = { arxiv: "arXiv", github: "GitHub", huggingface: "Hugging Face" };
+const MAX_W = 0.5; // 热度满分基准（GitHub 权重）
 
 // 把 data.json 里的 UTC 时间转成北京时间，并给出相对“多久前”
 function fmtBeijing(iso) {
@@ -155,43 +150,26 @@ async function load() {
   }
   const g = DATA.generated_at || "";
   document.getElementById("subtitle").textContent =
-    `GitHub 热门 AI 项目 · 按领域分类 ｜ 共 ${DATA.count || 0} 条`;
+    `权重 GitHub 0.5 / HF 0.3 / arXiv 0.2 ｜ 共 ${DATA.count || 0} 条`;
   document.getElementById("updated-text").textContent = "最后更新：" + fmtBeijing(g);
-  buildFilters();
   render();
 }
 
 function metricText(it) {
   const e = it.extra || {};
-  if (e.stars != null) return `★ ${e.stars.toLocaleString()}`;
+  if (it.source === "github") return e.stars != null ? `★ ${e.stars.toLocaleString()}` : "";
+  if (it.source === "huggingface")
+    return [e.likes ? `♥ ${e.likes.toLocaleString()}` : "",
+            e.downloads ? `⬇ ${e.downloads.toLocaleString()}` : ""].filter(Boolean).join(" · ");
   return "";
 }
 
-// 依据数据里实际出现的分类，动态生成筛选按钮（按 CATEGORIES 固定顺序）
-function buildFilters() {
-  const cats = DATA.categories || DEFAULT_CATS;
-  const present = new Set(DATA.items.map(i => i.category));
-  const order = cats.filter(c => present.has(c));
-  const box = document.getElementById("filters");
-  box.innerHTML = "";
-  const mk = (label, val, active) => {
-    const b = document.createElement("button");
-    b.textContent = label;
-    b.dataset.cat = val;
-    if (active) b.classList.add("active");
-    box.appendChild(b);
-  };
-  mk("全部", "all", state.cat === "all");
-  order.forEach(c => mk(c, c, state.cat === c));
-}
-
 function render() {
-  let items = DATA.items.filter(it => state.cat === "all" || it.category === state.cat);
+  let items = DATA.items.filter(it => state.src === "all" || it.source === state.src);
   if (state.q) {
     const q = state.q.toLowerCase();
     items = items.filter(it =>
-      (it.title + " " + (it.category || "") + " " + (it.summary || "") + " " + (it.description || ""))
-        .toLowerCase().includes(q));
+      (it.title + " " + (it.summary || "") + " " + (it.description || "")).toLowerCase().includes(q));
   }
   if (state.sort === "heat") items.sort((a, b) => b.heat_score - a.heat_score);
   else items.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
@@ -201,18 +179,16 @@ function render() {
 
   grid.innerHTML = items.map(it => {
     const w = Math.min(100, Math.round((it.heat_score / MAX_W) * 100));
-    const color = CAT_COLOR[it.category] || "#9ca3af";
     const summary = it.summary ? `<p class="summary">${esc(it.summary)}</p>`
                                : `<p class="desc">${esc(it.description || "")}</p>`;
     const tags = [];
     const mt = metricText(it);
     if (mt) tags.push(`<span class="tag">${mt}</span>`);
     if (it.extra && it.extra.language) tags.push(`<span class="tag">${esc(it.extra.language)}</span>`);
-    if (it.extra && it.extra.topics)
-      it.extra.topics.slice(0, 2).forEach(t => tags.push(`<span class="tag">${esc(t)}</span>`));
+    if (it.extra && it.extra.pipeline_tag) tags.push(`<span class="tag">${esc(it.extra.pipeline_tag)}</span>`);
     return `<article class="card">
       <div class="card-top">
-        <span class="badge" style="background:${color}">${esc(it.category)}</span>
+        <span class="badge badge-${it.source}">${SRC_LABEL[it.source]}</span>
         <span class="rank">#${it.rank}</span>
       </div>
       <h3><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
@@ -236,7 +212,7 @@ document.getElementById("filters").addEventListener("click", e => {
   if (e.target.tagName !== "BUTTON") return;
   document.querySelectorAll("#filters button").forEach(b => b.classList.remove("active"));
   e.target.classList.add("active");
-  state.cat = e.target.dataset.cat;
+  state.src = e.target.dataset.src;
   render();
 });
 document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; render(); });

@@ -1,0 +1,884 @@
+{
+  "generated_at": "2026-08-06T12:02:02",
+  "weights": {
+    "github": 0.5,
+    "huggingface": 0.3,
+    "arxiv": 0.2
+  },
+  "count": 60,
+  "items": [
+    {
+      "source": "github",
+      "title": "tensorflow/tensorflow",
+      "url": "https://github.com/tensorflow/tensorflow",
+      "description": "An Open Source Machine Learning Framework for Everyone",
+      "published": "2026-08-06",
+      "raw_metric": 196892.0,
+      "extra": {
+        "stars": 196892,
+        "language": "C++"
+      },
+      "norm": 1.0,
+      "heat_score": 0.5,
+      "rank": 1,
+      "summary": ""
+    },
+    {
+      "source": "github",
+      "title": "Significant-Gravitas/AutoGPT",
+      "url": "https://github.com/Significant-Gravitas/AutoGPT",
+      "description": "AutoGPT is the vision of accessible AI for everyone, to use and to build on. Our mission is to provide the tools, so that you can focus on what matters.",
+      "published": "2026-08-06",
+      "raw_metric": 185850.0,
+      "extra": {
+        "stars": 185850,
+        "language": "Python"
+      },
+      "norm": 0.9439,
+      "heat_score": 0.472,
+      "rank": 2,
+      "summary": "AutoGPT是一个开源AI智能体框架，让每个人都能构建和使用自主AI代理。"
+    },
+    {
+      "source": "github",
+      "title": "f/prompts.chat",
+      "url": "https://github.com/f/prompts.chat",
+      "description": "f.k.a. Awesome ChatGPT Prompts. Share, discover, and collect prompts from the community. Free and open source — self-host for your organization with complete privacy.",
+      "published": "2026-08-06",
+      "raw_metric": 166810.0,
+      "extra": {
+        "stars": 166810,
+        "language": "HTML"
+      },
+      "norm": 0.8472,
+      "heat_score": 0.4236,
+      "rank": 3,
+      "summary": "开源社区 prompts 分享平台，支持自托管，提供隐私保护的 ChatGPT 提示词收集与发现服务。"
+    },
+    {
+      "source": "github",
+      "title": "huggingface/transformers",
+      "url": "https://github.com/huggingface/transformers",
+      "description": "🤗 Transformers: the model-definition framework for state-of-the-art machine learning models in text, vision, audio, and multimodal models, for both inference and training. ",
+      "published": "2026-08-06",
+      "raw_metric": 163403.0,
+      "extra": {
+        "stars": 163403,
+        "language": "Python"
+      },
+      "norm": 0.8299,
+      "heat_score": 0.415,
+      "rank": 4,
+      "summary": ""
+    },
+    {
+      "source": "github",
+      "title": "langflow-ai/langflow",
+      "url": "https://github.com/langflow-ai/langflow",
+      "description": "Langflow is a powerful tool for building and deploying AI-powered agents and workflows.",
+      "published": "2026-08-06",
+      "raw_metric": 152886.0,
+      "extra": {
+        "stars": 152886,
+        "language": "Python"
+      },
+      "norm": 0.7765,
+      "heat_score": 0.3882,
+      "rank": 5,
+      "summary": "Langflow是一个用于构建和部署AI代理与工作流的可视化开发工具。"
+    },
+    {
+      "source": "huggingface",
+      "title": "black-forest-labs/FLUX.1-dev",
+      "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev",
+      "description": "",
+      "published": "2025-06-27",
+      "raw_metric": 14006.0,
+      "extra": {
+        "likes": 14006,
+        "downloads": 523234,
+        "pipeline_tag": "text-to-image"
+      },
+      "norm": 1.0,
+      "heat_score": 0.3,
+      "rank": 6,
+      "summary": ""
+    },
+    {
+      "source": "github",
+      "title": "pytorch/pytorch",
+      "url": "https://github.com/pytorch/pytorch",
+      "description": "Tensors and Dynamic neural networks in Python with strong GPU acceleration",
+      "published": "2026-08-06",
+      "raw_metric": 102234.0,
+      "extra": {
+        "stars": 102234,
+        "language": "Python"
+      },
+      "norm": 0.5192,
+      "heat_score": 0.2596,
+      "rank": 7,
+      "summary": "PyTorch提供带GPU加速的动态神经网络和张量计算框架。"
+    },
+    {
+      "source": "github",
+      "title": "rasbt/LLMs-from-scratch",
+      "url": "https://github.com/rasbt/LLMs-from-scratch",
+      "description": "Implement a ChatGPT-like LLM in PyTorch from scratch, step by step",
+      "published": "2026-07-29",
+      "raw_metric": 100675.0,
+      "extra": {
+        "stars": 100675,
+        "language": "Jupyter Notebook"
+      },
+      "norm": 0.5113,
+      "heat_score": 0.2557,
+      "rank": 8,
+      "summary": "用PyTorch从零实现ChatGPT-like LLM，提供逐步教学。"
+    },
+    {
+      "source": "github",
+      "title": "hacksider/Deep-Live-Cam",
+      "url": "https://github.com/hacksider/Deep-Live-Cam",
+      "description": "real time face swap and one-click video deepfake with only a single image",
+      "published": "2026-08-01",
+      "raw_metric": 95767.0,
+      "extra": {
+        "stars": 95767,
+        "language": "Python"
+      },
+      "norm": 0.4864,
+      "heat_score": 0.2432,
+      "rank": 9,
+      "summary": "基于单张图片实现实时换脸和一键视频deepfake。"
+    },
+    {
+      "source": "github",
+      "title": "opencv/opencv",
+      "url": "https://github.com/opencv/opencv",
+      "description": "Open Source Computer Vision Library",
+      "published": "2026-08-06",
+      "raw_metric": 90323.0,
+      "extra": {
+        "stars": 90323,
+        "language": "C++"
+      },
+      "norm": 0.4587,
+      "heat_score": 0.2294,
+      "rank": 10,
+      "summary": "开源计算机视觉库，提供图像处理与视觉算法工具。"
+    },
+    {
+      "source": "github",
+      "title": "thedotmack/claude-mem",
+      "url": "https://github.com/thedotmack/claude-mem",
+      "description": "Persistent Context Across Sessions for Every Agent –  Captures everything your agent does during sessions, compresses it with AI, and injects relevant context back into future sessions. Works with Claude Code, OpenClaw, Codex, Gemini, Hermes, Copilot, OpenCode + More",
+      "published": "2026-08-05",
+      "raw_metric": 89815.0,
+      "extra": {
+        "stars": 89815,
+        "language": "JavaScript"
+      },
+      "norm": 0.4562,
+      "heat_score": 0.2281,
+      "rank": 11,
+      "summary": "跨会话持久化Agent上下文，自动压缩并注入相关上下文，支持多种AI工具。"
+    },
+    {
+      "source": "github",
+      "title": "microsoft/ML-For-Beginners",
+      "url": "https://github.com/microsoft/ML-For-Beginners",
+      "description": "12 weeks, 26 lessons, 52 quizzes, classic Machine Learning for all",
+      "published": "2026-08-05",
+      "raw_metric": 89072.0,
+      "extra": {
+        "stars": 89072,
+        "language": "Jupyter Notebook"
+      },
+      "norm": 0.4524,
+      "heat_score": 0.2262,
+      "rank": 12,
+      "summary": "微软推出的12周机器学习入门课程，包含26节课和52个测验。"
+    },
+    {
+      "source": "huggingface",
+      "title": "moonshotai/Kimi-K3",
+      "url": "https://huggingface.co/moonshotai/Kimi-K3",
+      "description": "",
+      "published": "2026-07-27",
+      "raw_metric": 10161.0,
+      "extra": {
+        "likes": 10161,
+        "downloads": 1258043,
+        "pipeline_tag": "image-text-to-text"
+      },
+      "norm": 0.7255,
+      "heat_score": 0.2176,
+      "rank": 13,
+      "summary": ""
+    },
+    {
+      "source": "github",
+      "title": "OpenHands/OpenHands",
+      "url": "https://github.com/OpenHands/OpenHands",
+      "description": "🙌 OpenHands: AI-Driven Development",
+      "published": "2026-08-06",
+      "raw_metric": 83258.0,
+      "extra": {
+        "stars": 83258,
+        "language": "TypeScript"
+      },
+      "norm": 0.4229,
+      "heat_score": 0.2114,
+      "rank": 14,
+      "summary": "OpenHands是一个开源AI编程代理，能自主完成软件开发任务。"
+    },
+    {
+      "source": "github",
+      "title": "Developer-Y/cs-video-courses",
+      "url": "https://github.com/Developer-Y/cs-video-courses",
+      "description": "List of Computer Science courses with video lectures.",
+      "published": "2026-07-07",
+      "raw_metric": 82942.0,
+      "extra": {
+        "stars": 82942,
+        "language": null
+      },
+      "norm": 0.4213,
+      "heat_score": 0.2106,
+      "rank": 15,
+      "summary": "提供计算机科学课程视频讲座资源列表，便于学习者系统获取优质课程。"
+    },
+    {
+      "source": "github",
+      "title": "netdata/netdata",
+      "url": "https://github.com/netdata/netdata",
+      "description": "The fastest path to AI-powered full stack observability, even for lean teams.",
+      "published": "2026-08-06",
+      "raw_metric": 80046.0,
+      "extra": {
+        "stars": 80046,
+        "language": "Go"
+      },
+      "norm": 0.4065,
+      "heat_score": 0.2033,
+      "rank": 16,
+      "summary": "netdata提供AI驱动的full stack observability，帮助小团队快速实现全栈可观测性。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Reasoning Core: Designing Broad Procedural Data for Completion-Supervised Reasoning Training",
+      "url": "http://arxiv.org/abs/2608.05148v1",
+      "description": "Procedural generators produce useful verifiable reasoning problems at scale, but have received less attention as data for completion-supervised fine-tuning. We introduce Reasoning Core, a collection of 50 generators spanning mathematics, logic, planning, state tracking, formal languages, structured data, games, causality, and code, with semantic scorers, difficulty controls, and task evaluators. Under a matched completion-supervised protocol, we compare Reasoning Core with Procedural Warmup, Reasoning Gym, and SynLogic across four base-model settings and multiple training durations. In the pri",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 17,
+      "summary": "Reasoning Core提供50个procedural generators，用于completion-supervised reasoning training。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Argus: A General-Purpose Agentic Runtime for Long-Horizon Reasoning",
+      "url": "http://arxiv.org/abs/2608.05144v1",
+      "description": "Long-horizon reasoning requires an agentic runtime that can persist when evidence supports its current approach and pivot when measurements reveal failure, hidden constraints, or a misspecified objective. We present Argus, a persistent, self-evolving runtime in which Manager, Planner, Engineer, and Reviewer execute bounded missions over durable project state. Argus separates stable user intent from operational objectives, constraints, and verification criteria, and admits memories, skills, procedures, verifiers, routing decisions, and rejected routes only after role-owned review and, when avai",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 18,
+      "summary": "Argus提出持久化自我演化的agentic runtime，分离stable user intent与operational objectives以支持long-horizon reasoning。"
+    },
+    {
+      "source": "arxiv",
+      "title": "OctoLong: Mid-Training On Cross-Repository Code Contexts Enhances Long-Context Modeling",
+      "url": "http://arxiv.org/abs/2608.05141v1",
+      "description": "Context lengths of language models (LMs) have dramatically increased, driven by the demands for in-context learning, self-improvement, and long-horizon agentic workflows. Existing long-context corpora, however, are dominated by books, academic articles, and code repositories, which are finite resources and often scarce in long-distance dependencies. In this work, we introduce OctoLong, a context engineering pipeline that instruments an AST parser, a language server backend, and a package manager to facilitate the recursive retrieval of code references, enabling the curation of dependency-rich ",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 19,
+      "summary": ""
+    },
+    {
+      "source": "arxiv",
+      "title": "Toward Skill-Native LLMs: Skill Entropy for Benchmarking and Training Long-Horizon Reasoning",
+      "url": "http://arxiv.org/abs/2608.05139v1",
+      "description": "Long-horizon reasoning in recent LLMs demands that the model switch between distinct skills inside a reasoning chain, such as first doing a math derivation, then using the result to plan a schedule. We call such problems cross-skill long-horizon tasks: multi-step tasks whose steps require different reasoning skills and depend on earlier outputs. Existing benchmarks often evaluate individual skills, lacking a principled way to measure how well a model switches between skills. We address this gap from both the evaluation and training sides. We introduce Skill Entropy, a measure of the difficulty",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 20,
+      "summary": "提出Skill Entropy评估和训练LLM跨技能长程推理能力。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Teaching Nemotron Greek: Mining a Corpus, Adapting Retrieval, and Grounding Generation for Modern Greek across Specialist Domains",
+      "url": "http://arxiv.org/abs/2608.05138v1",
+      "description": "Modern Greek is absent from NVIDIA's Nemotron retrieval models and from major multilingual retrieval benchmarks, despite being important for retrieval-augmented generation (RAG) in legal, energy, financial, and medical applications. We present an end-to-end adaptation of the Nemotron retrieval stack for Modern Greek, including corpus mining, synthetic supervision, retrieval model training, reranker adaptation, reader fine-tuning, and a new benchmark called HERA. Our study shows that a parameter-free BM25 baseline outperforms several off-the-shelf multilingual dense retrieval models on speciali",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 21,
+      "summary": "将Nemotron检索栈适配至现代希腊语，涵盖语料挖掘、模型训练与重排序器适配，并提出HERA基准。"
+    },
+    {
+      "source": "arxiv",
+      "title": "The Loss Does Not See the Basis, but Adam Does",
+      "url": "http://arxiv.org/abs/2608.05136v1",
+      "description": "Gradient descent on a factored model $W = UV^\\top$ is implicitly biased toward low-rank solutions, while Adam, starting from the same small initialization, is not. We trace the difference to the gauge symmetry of the loss, its invariance under $(U, V) \\mapsto (UQ, VQ)$. Gradient flow's low-rank mechanism is available to an optimizer only if that optimizer is gauge-equivariant, a condition necessary for the transfer but not sufficient for low-rank recovery. Gradient descent, momentum, \"shared-scalar\" Adam, Muon, and Shampoo satisfy it. Adam, RMSProp, and the other coordinate-wise methods do not",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 22,
+      "summary": "揭示了因式分解模型中optimizer低秩偏向差异的根源在于gauge symmetry，并给出了gauge-equivariant条件。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Predicting Brain Morphometry with MT-GNN: Mesh Evolution in Continuous Time with Graph-Based Metric Tensor Embeddings",
+      "url": "http://arxiv.org/abs/2608.05132v1",
+      "description": "Predicting how a subcortical structure's shape will evolve from a few prior scans could support prognosis and clinical-trial enrichment. Existing longitudinal mesh predictors either extrapolate shape trajectories via high-dimensional embeddings or regress vertex deformations directly. We instead predict the surface's intrinsic geometry in continuous time: a single per-structure graph network predicts the future per-vertex first fundamental form (metric tensor) for an arbitrary causal multiple-visit history and an arbitrary prediction horizon, conditioned on a Fourier encoding of the lead time.",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 23,
+      "summary": "MT-GNN通过graph network预测连续时间下的metric tensor，用于预测大脑皮层下结构形状演化。"
+    },
+    {
+      "source": "arxiv",
+      "title": "OPD-V: Visual On-Policy Self-Distillation with Modality Balance",
+      "url": "http://arxiv.org/abs/2608.05131v1",
+      "description": "On-Policy Self-Distillation (OPSD) has become a standard post-training approach for improving visual reasoning in multimodal large language models (MLLMs). Existing methods draw privileged information from diverse input sources to guide self-distillation. Yet these designs overlook Modality Imbalance, a challenge inherent to MLLM reasoning. When textual information dominates generation, the model cannot fully integrate its multimodal input. Consequently, carefully designed privileged information remains underused, limiting the effectiveness of OPSD. To examine this limitation, we construct a P",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 24,
+      "summary": "提出OPD-V方法，通过模态平衡解决MLLM视觉推理中的模态不平衡问题。"
+    },
+    {
+      "source": "arxiv",
+      "title": "SSTQ:Privacy-Preserving Vector Quantization via Subsampled Stochastic TurboQuant",
+      "url": "http://arxiv.org/abs/2608.05127v1",
+      "description": "Achieving local differential privacy in distributed optimization while maintaining low communication cost remains challenging. Existing vector quantization methods, such as vqSGD, use high-dimensional geometric constructions but incur unfavorable dimension-dependent variance. In this work, we propose Subsampled Stochastic TurboQuant (SSTQ), a framework that combines overcomplete equal-norm tight frames, coordinate subsampling, and privacy-aware one-dimensional quantization. SSTQ includes two variants: a Flat Randomized Response version and a Metric-Aware Laplace version, the latter being bette",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 25,
+      "summary": "提出 SSTQ 框架，结合 subsampling 与 one-dimensional quantization，在分布式优化中实现本地差分隐私并降低通信开销。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Spoken Function Calling: A New Perspective on Spoken Language Understanding for Large Audio Language Models",
+      "url": "http://arxiv.org/abs/2608.05126v1",
+      "description": "Spoken Language Understanding (SLU) is the core component of task-oriented dialogue systems and a pivotal link in achieving seamless human-agent interaction. While traditional SLU can effectively extract user semantics for closed-set tasks after in-domain supervised fine-tuning, it faces significant challenges in leveraging in-context learning for open-domain tasks due to its ambiguous rule definitions. This work proposes Spoken Function Calling (SFC), a novel semantic understanding perspective that optimizes semantic understanding with structured rule definitions, to evolve beyond traditional",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 26,
+      "summary": "提出SFC，通过结构化规则定义优化大音频语言模型的语义理解，解决开放域in-context learning挑战。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Chained Recursive Language Models for Multi-Iteration Reasoning",
+      "url": "http://arxiv.org/abs/2608.05124v1",
+      "description": "Long context reasoning in large language models (LLMs) is usually constrained by the fact that a single inference trajectory has to simultaneously explore the context, store intermediate state, verify evidence, and produce the final answer. This becomes particularly difficult in tasks that require extraction, counting, ordering, or multi-hop reasoning, where an early mistake can propagate until the final response. In this work, we propose Chained Recursive Language Models (Chained RLM), an inference-time architecture, in which the same underlying model is called repeatedly as a sequence of fre",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 27,
+      "summary": "提出Chained RLM推理时架构，通过重复调用模型实现多轮迭代推理，减少长上下文推理中的错误传播。"
+    },
+    {
+      "source": "arxiv",
+      "title": "DASyR-LLM: Domain-Aware Symbolic Regression with LLMs for Kinetic Model Discovery",
+      "url": "http://arxiv.org/abs/2608.05120v1",
+      "description": "Kinetic model discovery is a central challenge in chemical engineering, as accurate rate expressions are essential for understanding and controlling chemical and biological processes. Symbolic regression (SR) has emerged as a powerful data-driven approach for identifying interpretable kinetic models, but usually operates without domain knowledge, often exploring physicochemically implausible models. Large language models (LLMs) offer a promising avenue for injecting domain expertise into this search. Here, we introduce an LLM-guided SR framework, embedding an LLM module within an iterative SR ",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 28,
+      "summary": "将LLM嵌入符号回归框架，注入领域知识，用于动力学模型发现。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Robust and Efficient Motion Reasoning for Privacy-Aware Classroom Incident Recognition",
+      "url": "http://arxiv.org/abs/2608.05115v1",
+      "description": "Can computer vision help make classrooms safer? In this pilot study, we investigate privacy-aware and computationally efficient classroom incident recognition from CCTV-style observations. This setting remains underexplored, with limited benchmarks and few methods designed for the privacy, efficiency, and generalization demands of real-world deployment. We introduce a novel hybrid benchmark combining generative CCTV-style videos with real-world classroom pose data, and propose a lightweight, but robust motion-reasoning framework motivated by the observation that many incidents differ more in m",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 29,
+      "summary": "提出了轻量级鲁棒的motion-reasoning框架，用于隐私感知的教室CCTV事件识别，并引入混合benchmark。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Stable Density Ridges: Consistency and Convergence of Subspace Constrained Mean Shift",
+      "url": "http://arxiv.org/abs/2608.05112v1",
+      "description": "The Subspace Constrained Mean Shift (SCMS) algorithm is a popular nonparametric method for extracting density ridges, which serve as a low-dimensional representation of high-dimensional data. It is a widely held belief in the literature that SCMS trajectories converge to the classical density ridge, which we call the \"static ridge\", defined via the density gradient and the eigenvalues and eigenvectors of the density's Hessian. In this paper, we demonstrate that this assumption does not hold in general, as the static definition fails to account for the rotation of the trailing eigenspace along ",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 30,
+      "summary": "证明SCMS不收敛到static ridge，提出考虑eigenspace旋转的稳定density ridges定义。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Reward Structure Shapes the Interaction Between Episodic Exploration and Neural Memory in Reinforcement Learning",
+      "url": "http://arxiv.org/abs/2608.05111v1",
+      "description": "In partially observable reinforcement learning, agents face a dual bottleneck: they must explore to encounter rewarding states and retain that experience in memory to optimize their policies. Exploration bonuses and memory architectures are traditionally evaluated in isolation, leaving their interaction unmeasured, and standard notions of sparse reward conflate temporal signal density with what the reward actually supervises. We present a controlled study crossing episodic exploration bonuses with diverse neural memory architectures across three environments that vary how the content of memory",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 31,
+      "summary": "本研究通过控制实验揭示了episodic exploration bonuses与neural memory architectures在部分可观测强化学习中的交互作用。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Representational separation between unitary and channel quantum generative models via shared classical randomness at shallow depth",
+      "url": "http://arxiv.org/abs/2608.05110v1",
+      "description": "Near-term quantum hardware limits circuit depth and often imposes geometrically local connectivity for quantum generative models, restricting the output distributions accessible to shallow unitary Born models. Introducing stochasticity into a unitary quantum Born model can improve the empirical generative performance of the resulting channel model and, for a restricted small-scale architecture, has been proven to represent a strictly larger family of distributions than its unitary counterpart. However, whether such randomness provides a provable separation at fixed shallow depth for arbitraril",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 32,
+      "summary": "证明浅层深度下通过共享经典随机性，channel量子生成模型可表示比unitary模型更丰富的分布族。"
+    },
+    {
+      "source": "arxiv",
+      "title": "CoPlan: A Trustworthy Co-Intelligence Interface for Care Planning through Role-Based Contestable Argument Graphs",
+      "url": "http://arxiv.org/abs/2608.05107v1",
+      "description": "AI-supported care planning can help clinicians, patients, caregivers, and care teams coordinate complex decisions across clinical, functional, psychosocial, and environmental needs. However, many AI systems present recommendations as fixed outputs, limiting stakeholders' ability to inspect, challenge, and revise plans when they conflict with clinical judgment, patient values, or real-world feasibility. We present CoPlan - a Co-Intelligent and Contestable Interface for Human-AI Care Planning. CoPlan uses a multi-agent workflow in which specialized AI agents generate candidate interventions and ",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 33,
+      "summary": "CoPlan通过多智能体工作流与可争辩论证图，支持多方审查和挑战AI护理建议。"
+    },
+    {
+      "source": "arxiv",
+      "title": "BnBERT-iPET: Sparse Few-Shot Language Modeling for Bengali via Lottery Ticket Pruning",
+      "url": "http://arxiv.org/abs/2608.05104v1",
+      "description": "Deep neural networks have shown impressive success in NLP tasks owing to their complex structure and huge number of edges. Achieving state-of-the-art performance in natural language processing with a large pre-trained model such as BERT is expensive and time-consuming, carries a large carbon footprint, and is difficult to realize on machines with minimal computational capability. This creates a barrier to training complex models for resource-constrained languages such as Bengali. However, in a complex neural model, not all edges are equally impactful, and the contributions of some of them can ",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 34,
+      "summary": "通过彩票剪枝技术构建稀疏少样本语言模型，降低孟加拉语等低资源语言的训练成本。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Multimodal Spatiotemporal Atmospheric Data Assimilation with Latent Flow-matching",
+      "url": "http://arxiv.org/abs/2608.05103v1",
+      "description": "Data assimilation (DA) uses Bayesian inference to update the state of a numerical forecast model with observed data. In this study, we propose a fundamentally different, unified approach to atmospheric data assimilation. We use latent video flow-matching to sample temporally consistent trajectories from a prior trained using ERA5 reanalysis (69 variables over an 8-day window). We also use posterior sampling to assimilate real observation sources, such as those from the NOAA Integrated Global Radiosonde Archive and the Integrated Surface Database. Because the prior generates a continuous trajec",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 35,
+      "summary": "提出基于latent flow-matching的大气数据同化方法，实现多模态时空观测与数值预报模型的统一融合。"
+    },
+    {
+      "source": "arxiv",
+      "title": "ABSeeker: Training Long-Horizon Search Agents via Answer-Backtracked Credit Assignment",
+      "url": "http://arxiv.org/abs/2608.05102v1",
+      "description": "Long-horizon search agents must make multiple sequential actions (steps) to search, retrieve, verify, and integrate evidence to reach a final answer. However, existing methods for training these agents typically treat all steps within a trajectory uniformly during both supervised fine-tuning (SFT) and reinforcement learning (RL), failing to distinguish useful actions from erroneous or redundant ones. In this paper, we propose Answer-Backtracked Credit Assignment (ABC), a fine-grained credit assignment framework for training long-horizon search agents by converting sparse trajectory-level outco",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 36,
+      "summary": "提出ABC框架，通过答案回溯实现细粒度credit assignment，训练long-horizon search agents。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Same Formulas, Different Semantics: Do Language Models Follow Modal Logic Specifications?",
+      "url": "http://arxiv.org/abs/2608.05097v1",
+      "description": "Reasoning about necessity and possibility depends on assumptions about accessibility between worlds and about which objects exist at each one. The same inference may therefore hold under one modal system and fail under another. Evaluating language models on such problems requires testing whether their judgments follow the stated semantics rather than a familiar logic. We construct paired modal problems with identical premises and conjecture but different frame or domain conditions; automated reasoning verifies opposite labels. A balanced core prevents the semantic condition alone from revealin",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 37,
+      "summary": "构建配对模态问题测试语言模型是否遵循语义而非熟悉逻辑。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Hierarchical Graph Memory for LLM Agents with Path-level Localization and Rewrite",
+      "url": "http://arxiv.org/abs/2608.05095v1",
+      "description": "Agents for long term reasoning require a memory that can be efficiently and effectively updated over time, as new facts and external feedback continue to arrive. Recently, graph memory has been adopted to offer structural organization for multi-hop retrieval and reasoning. However, existing methods store all memories in a flat graph, and accumulated historical memories can introduce irrelevant contexts and increase the cost of evidence selection during retrieval. Moreover, they typically update memory units independently, requiring repeated unit-wise rewrite to cover related changes. To addres",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 38,
+      "summary": "提出分层图记忆机制，通过路径级定位与重写优化LLM Agent长期推理效率。"
+    },
+    {
+      "source": "arxiv",
+      "title": "MALT: Lightweight Curvature-Aware Muon via Diagonal Preconditioning",
+      "url": "http://arxiv.org/abs/2608.05088v1",
+      "description": "Muon has recently emerged as a promising alternative to AdamW for language model pretraining by orthogonalizing momentum matrices using Newton-Schulz iterations. Although Muon mitigates gradient anisotropy, it does not explicitly account for the curvature geometry of the loss landscape and may therefore remain sensitive to curvature anisotropy. We bridge this gap by proposing MALT (Muon Augmented by Lightweight Two-sided Preconditioning), which uses lightweight diagonal preconditioners to reduce the sensitivity of Muon to curvature anisotropy. Specifically, MALT uses two-sided diagonal precond",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 39,
+      "summary": "MALT通过轻量级对角预条件器增强Muon，降低其对曲率各向异性的敏感性。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Item Response Theory for AI Safety",
+      "url": "http://arxiv.org/abs/2608.05086v1",
+      "description": "Language models differ in how safely they behave and these differences are measured by safety benchmarks. But aggregated benchmark scores are hard to trust and interpret, because benchmarks duplicate one another, correlate heavily, and models may sandbag when they detect evaluation. To address these issues, we draw on Item Response Theory (IRT), a statistical toolkit for measuring these latents from performance on items with inferred psychometric properties. We fit IRT models to eight safety benchmarks across 192 language models, the largest psychometric analysis of LLM safety evaluations to d",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 40,
+      "summary": "基于Item Response Theory对LLM安全基准进行心理测量学分析，提升安全评估的可信度与可解释性。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Capability-Gated Planning: Cost-to-Goal Discovery and the Limits of Myopic Experiment Selection",
+      "url": "http://arxiv.org/abs/2608.05085v1",
+      "description": "Systems that automate scientific discovery must repeatedly decide which experiment to run, which hypothesis to test, which tool to build, and when to stop. Many systems make these decisions by maximizing a myopic score such as expected information gain per unit cost or a learned plausibility score. We identify a structural limitation of this approach. Some actions are constructive: they acquire an epistemic capability (an instrument, assay, pipeline, simulator, or abstraction) whose value lies not in the information returned immediately but in the future actions it makes available. When the le",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 41,
+      "summary": "指出myopic experiment selection的局限，强调constructive actions通过获取epistemic capability解锁未来实验能力。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Learning When to Stop: Prefix-Optimal Dynamic Diffusion Policies for Continuous Control",
+      "url": "http://arxiv.org/abs/2608.05084v1",
+      "description": "Diffusion policies are a powerful policy class for continuous control, but their iterative denoising process creates a substantial computational bottleneck. Reducing this cost requires adapting the number of denoising steps to the difficulty of each action while preserving task performance. We introduce Prefix-Optimal Generative Policies (POGP), a framework that learns a prefix value function at every intermediate denoising step through a Bellman-style recursion over the denoising chain. The prefix value function serves two purposes: it provides an auxiliary training objective that encourages ",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 42,
+      "summary": "提出POGP框架，通过学习prefix value function动态调整去噪步数，降低diffusion policy计算成本。"
+    },
+    {
+      "source": "arxiv",
+      "title": "Optimizing What Policies Learn From: Recoverability-aware Rollout Intervention Learning",
+      "url": "http://arxiv.org/abs/2608.05080v1",
+      "description": "Critic-free group-based reinforcement learning has become a scalable approach for post-training large language models. However, most existing methods allocate the same number of rollouts to every task and trajectory state, even though some rollouts provide much more useful learning signals than others. Recent work has started to treat rollout generation as an adaptive decision, but two important limitations remain. First, intervention strategies are often based on fixed heuristics and therefore cannot adjust as the policy changes during training. Second, these methods usually decide only how m",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 43,
+      "summary": "提出Recoverability-aware Rollout Intervention Learning，通过动态调整rollout干预策略优化大语言模型post-training的RL学习过程。"
+    },
+    {
+      "source": "arxiv",
+      "title": "MultiPathFormer: Towards a Foundation Model for Multipath Wireless Propagation",
+      "url": "http://arxiv.org/abs/2608.05076v1",
+      "description": "Recent advances in machine learning have enabled training of wireless foundation models, which aim to support tasks such as channel estimation, beam prediction, and localization based on wireless signals. Existing wireless foundation models typically pretrain on channel tensors using masked reconstruction over subcarriers, antennas, or time but ignore the physical characteristics of wireless propagation. In this work, we propose to instead use multipath propagation as the fundamental pretraining object. We present MultiPathFormer, an autoregressive foundation model that represents each transmi",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 44,
+      "summary": ""
+    },
+    {
+      "source": "arxiv",
+      "title": "German parties shifted towards intuition-based rhetoric after the far right's parliamentary breakthrough",
+      "url": "http://arxiv.org/abs/2608.05075v1",
+      "description": "The spread of misinformation is widely perceived as a threat to democratic deliberation, yet how political elites' rhetorical commitments to truth shift alongside the rise of populist actors remains poorly understood. Analysing 4.5 million tweets and 59,170 parliamentary speeches by German political elites between 2015 and 2025, we measure evidence-based and intuition-based rhetoric using a validated distributed dictionary representation. Across both arenas, intuition-based language has become more prominent, and right-leaning actors consistently exhibit the lowest Evidence Minus Intuition (EM",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 45,
+      "summary": "研究揭示德国政治精英在民粹主义崛起背景下，修辞策略从evidence-based向intuition-based转变。"
+    },
+    {
+      "source": "arxiv",
+      "title": "VQ-VAD: Vector-quantized Motion Representation Learning for Human-centric Video Anomaly Detection",
+      "url": "http://arxiv.org/abs/2608.05069v1",
+      "description": "Video Anomaly Detection (VAD) is inherently challenging due to the scarcity of anomalies and the large visual variability in surveillance footage, including changes in lighting, viewpoint, and human appearance. To mitigate visual noise and address privacy concerns, recent work has shifted to pose-based VAD, which focuses on motion dynamics rather than raw video data. However, existing pose-based approaches model human behavior in continuous latent spaces, limiting their ability to learn compact motion patterns necessary for robust behavior analysis. We address this by proposing Vector-Quantize",
+      "published": "2026-08-05",
+      "raw_metric": 0.9666666666666667,
+      "extra": {},
+      "norm": 1.0,
+      "heat_score": 0.2,
+      "rank": 46,
+      "summary": "提出VQ-VAD，通过向量量化学习紧凑运动表示，实现以人为中心的视频异常检测。"
+    },
+    {
+      "source": "github",
+      "title": "hiyouga/LlamaFactory",
+      "url": "https://github.com/hiyouga/LlamaFactory",
+      "description": "Unified Efficient Fine-Tuning of 100+ LLMs & VLMs (ACL 2024)",
+      "published": "2026-08-06",
+      "raw_metric": 73846.0,
+      "extra": {
+        "stars": 73846,
+        "language": "Python"
+      },
+      "norm": 0.3751,
+      "heat_score": 0.1875,
+      "rank": 47,
+      "summary": ""
+    },
+    {
+      "source": "github",
+      "title": "keras-team/keras",
+      "url": "https://github.com/keras-team/keras",
+      "description": "Deep Learning for humans",
+      "published": "2026-08-06",
+      "raw_metric": 64225.0,
+      "extra": {
+        "stars": 64225,
+        "language": "Python"
+      },
+      "norm": 0.3262,
+      "heat_score": 0.1631,
+      "rank": 48,
+      "summary": "Keras 是简洁易用的深度学习框架，降低深度学习开发门槛。"
+    },
+    {
+      "source": "github",
+      "title": "microsoft/AI-For-Beginners",
+      "url": "https://github.com/microsoft/AI-For-Beginners",
+      "description": "12 Weeks, 24 Lessons, AI for All!",
+      "published": "2026-07-21",
+      "raw_metric": 62394.0,
+      "extra": {
+        "stars": 62394,
+        "language": "Jupyter Notebook"
+      },
+      "norm": 0.3169,
+      "heat_score": 0.1584,
+      "rank": 49,
+      "summary": "微软推出的面向初学者的AI入门课程，12周24课普及人工智能知识。"
+    },
+    {
+      "source": "github",
+      "title": "ultralytics/ultralytics",
+      "url": "https://github.com/ultralytics/ultralytics",
+      "description": "Ultralytics YOLO26, YOLO11, YOLOv8 — object detection, instance segmentation, semantic segmentation, image classification, pose estimation, object tracking",
+      "published": "2026-08-06",
+      "raw_metric": 60259.0,
+      "extra": {
+        "stars": 60259,
+        "language": "Python"
+      },
+      "norm": 0.3061,
+      "heat_score": 0.153,
+      "rank": 50,
+      "summary": "Ultralytics 提供 YOLO 系列模型，支持目标检测、分割、分类、姿态估计和跟踪等多种计算机视觉任务。"
+    },
+    {
+      "source": "github",
+      "title": "ultralytics/yolov5",
+      "url": "https://github.com/ultralytics/yolov5",
+      "description": "Ultralytics YOLOv5 in PyTorch for object detection, instance segmentation, classification, training, and export.",
+      "published": "2026-08-02",
+      "raw_metric": 57811.0,
+      "extra": {
+        "stars": 57811,
+        "language": "Python"
+      },
+      "norm": 0.2936,
+      "heat_score": 0.1468,
+      "rank": 51,
+      "summary": "基于PyTorch的高效目标检测框架，支持实例分割、分类、训练及模型导出。"
+    },
+    {
+      "source": "github",
+      "title": "FlowiseAI/Flowise",
+      "url": "https://github.com/FlowiseAI/Flowise",
+      "description": "Build AI Agents, Visually",
+      "published": "2026-08-06",
+      "raw_metric": 55206.0,
+      "extra": {
+        "stars": 55206,
+        "language": "TypeScript"
+      },
+      "norm": 0.2804,
+      "heat_score": 0.1402,
+      "rank": 52,
+      "summary": "FlowiseAI是一个可视化构建AI Agents和LLM工作流的开源工具。"
+    },
+    {
+      "source": "github",
+      "title": "roboflow/supervision",
+      "url": "https://github.com/roboflow/supervision",
+      "description": "We write your reusable computer vision tools. 💜",
+      "published": "2026-08-05",
+      "raw_metric": 49112.0,
+      "extra": {
+        "stars": 49112,
+        "language": "Python"
+      },
+      "norm": 0.2494,
+      "heat_score": 0.1247,
+      "rank": 53,
+      "summary": "提供可复用的Computer Vision工具库，加速CV项目开发。"
+    },
+    {
+      "source": "github",
+      "title": "rohitg00/ai-engineering-from-scratch",
+      "url": "https://github.com/rohitg00/ai-engineering-from-scratch",
+      "description": "Learn it. Build it. Ship it for others.",
+      "published": "2026-08-04",
+      "raw_metric": 46073.0,
+      "extra": {
+        "stars": 46073,
+        "language": "Python"
+      },
+      "norm": 0.234,
+      "heat_score": 0.117,
+      "rank": 54,
+      "summary": "提供AI工程从零到交付的完整实践路径，帮助掌握AI系统开发全流程。"
+    },
+    {
+      "source": "github",
+      "title": "ray-project/ray",
+      "url": "https://github.com/ray-project/ray",
+      "description": "Ray is an AI compute engine. Ray consists of a core distributed runtime and a set of AI Libraries for accelerating ML workloads.",
+      "published": "2026-08-06",
+      "raw_metric": 43458.0,
+      "extra": {
+        "stars": 43458,
+        "language": "Python"
+      },
+      "norm": 0.2207,
+      "heat_score": 0.1104,
+      "rank": 55,
+      "summary": "Ray提供分布式运行时与AI库，加速机器学习工作负载。"
+    },
+    {
+      "source": "huggingface",
+      "title": "zai-org/GLM-5.2",
+      "url": "https://huggingface.co/zai-org/GLM-5.2",
+      "description": "",
+      "published": "2026-07-02",
+      "raw_metric": 4861.0,
+      "extra": {
+        "likes": 4861,
+        "downloads": 2391730,
+        "pipeline_tag": "text-generation"
+      },
+      "norm": 0.3471,
+      "heat_score": 0.1041,
+      "rank": 56,
+      "summary": ""
+    },
+    {
+      "source": "github",
+      "title": "HKUDS/LightRAG",
+      "url": "https://github.com/HKUDS/LightRAG",
+      "description": "[EMNLP2025] \"LightRAG: Simple and Fast Retrieval-Augmented Generation\"",
+      "published": "2026-08-06",
+      "raw_metric": 38571.0,
+      "extra": {
+        "stars": 38571,
+        "language": "Python"
+      },
+      "norm": 0.1959,
+      "heat_score": 0.0979,
+      "rank": 57,
+      "summary": "提出LightRAG，一种简单快速的检索增强生成方法，提升RAG效率。"
+    },
+    {
+      "source": "github",
+      "title": "google/langextract",
+      "url": "https://github.com/google/langextract",
+      "description": "A Python library for extracting structured information from unstructured text using LLMs with precise source grounding and interactive visualization.",
+      "published": "2026-07-25",
+      "raw_metric": 37987.0,
+      "extra": {
+        "stars": 37987,
+        "language": "Python"
+      },
+      "norm": 0.1929,
+      "heat_score": 0.0965,
+      "rank": 58,
+      "summary": "使用LLM从非结构化文本提取结构化信息，支持精确source grounding与交互式可视化。"
+    },
+    {
+      "source": "github",
+      "title": "google-ai-edge/mediapipe",
+      "url": "https://github.com/google-ai-edge/mediapipe",
+      "description": "Cross-platform, customizable ML solutions for live and streaming media.",
+      "published": "2026-08-06",
+      "raw_metric": 36502.0,
+      "extra": {
+        "stars": 36502,
+        "language": "C++"
+      },
+      "norm": 0.1854,
+      "heat_score": 0.0927,
+      "rank": 59,
+      "summary": "MediaPipe提供跨平台可定制的ML解决方案，支持实时和流媒体处理。"
+    },
+    {
+      "source": "github",
+      "title": "bojieli/ai-agent-book",
+      "url": "https://github.com/bojieli/ai-agent-book",
+      "description": "《深入理解 AI Agent：设计原理与工程实践》（李博杰 著）开源主仓库：全书正文、编译版 PDF 与按章配套代码",
+      "published": "2026-08-06",
+      "raw_metric": 33395.0,
+      "extra": {
+        "stars": 33395,
+        "language": "Python"
+      },
+      "norm": 0.1696,
+      "heat_score": 0.0848,
+      "rank": 60,
+      "summary": "开源《深入理解AI Agent》全书及代码，系统讲解AI Agent设计原理与工程实践。"
+    }
+  ]
+}

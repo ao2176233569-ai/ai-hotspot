@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI 热点聚合脚本
-==============
-抓取三类来源：arXiv（论文）/ GitHub（代码）/ Hugging Face（模型），
-计算统一热度分（GitHub 0.5 / Hugging Face 0.3 / arXiv 0.2），
+AI 热点聚合脚本（GitHub 版）
+==========================
+只聚合 GitHub 上最热门的 AI 项目，按 AI 子领域自动分类，
 调用大模型为每条生成一句中文摘要，输出 public/data.json。
 
 用法：
@@ -22,13 +21,12 @@ AI 热点聚合脚本
 import os
 import sys
 import json
+import math
 import time
 import argparse
 import datetime
 import urllib.request
 import urllib.parse
-import xml.etree.ElementTree as ET
-from collections import defaultdict
 
 # ---------------- 配置 ----------------
 def load_dotenv(path=".env"):
@@ -46,19 +44,36 @@ def load_dotenv(path=".env"):
                 os.environ[k] = v
 load_dotenv()
 
-ARXIV_CATS   = ["cs.AI", "cs.LG", "cs.CL"]
-ARXIV_LIMIT  = 30
+# GitHub 抓取：围绕一个宽泛的 AI topic，取近期活跃且 star 较高的项目
+GH_TOPIC       = "machine-learning"
+GH_PER_PAGE    = 60
+GH_MIN_STARS   = 100
+GH_RECENT_DAYS = 30
 
-GH_TOPICS    = ["machine-learning", "deep-learning",
-                "artificial-intelligence", "large-language-models", "computer-vision"]
-GH_PER_TOPIC = 8
-GH_MIN_STARS = 30
+KEEP_TOP_N     = 60
 
-HF_LIMIT     = 30
+# 分类体系（顺序即优先级：越具体的子类越靠前，避免被宽泛类吞掉）
+CATEGORIES = ["大模型 / LLM", "智能体 / Agent", "多模态 / 视觉", "检索增强 / RAG",
+              "训练 / 微调", "推理 / 部署", "语音 / 音频", "框架 / 工具", "其他"]
 
-# 统一热度分权重（用户自定义）
-WEIGHTS      = {"github": 0.5, "huggingface": 0.3, "arxiv": 0.2}
-KEEP_TOP_N   = 60
+CAT_KEYWORDS = [
+    ("智能体 / Agent", ["agent", "autonomous", "multi-agent", "ai-agent", "workflow", "tool-use"]),
+    ("多模态 / 视觉", ["computer-vision", "vision", "diffusion", "stable-diffusion",
+                      "text-to-image", "image-generation", "video", "video-generation",
+                      "multimodal", "vlm", "ocr", "segment"]),
+    ("检索增强 / RAG", ["rag", "retrieval-augmented", "vector-database",
+                       "embedding", "semantic-search", "knowledge-base"]),
+    ("训练 / 微调", ["training", "fine-tuning", "finetune", "lora", "qlora", "rlhf",
+                    "distillation", "pretraining", "deepseed", "deepspeed"]),
+    ("推理 / 部署", ["inference", "serving", "deployment", "onnx", "quantization",
+                    "llama-cpp", "tensorrt", "triton", "accelerat"]),
+    ("语音 / 音频", ["speech", "tts", "asr", "audio", "voice", "music", "sound"]),
+    ("大模型 / LLM", ["llm", "large-language-models", "gpt", "transformer", "llama",
+                     "chatgpt", "nlp", "language-model", "prompt", "chatbot", "moe"]),
+    ("框架 / 工具", ["framework", "library", "toolkit", "pytorch", "tensorflow", "jax",
+                    "api", "sdk", "benchmark", "dataset", "data"]),
+]
+
 
 def env(key, default):
     """读环境变量；为空或仅空白时回退到默认值（避免空 Secret 覆盖默认配置）。"""
@@ -82,133 +97,62 @@ def log(*a):
     print("[fetch]", *a, file=sys.stderr, flush=True)
 
 
-# ---------------- 抓取：arXiv ----------------
-def fetch_arxiv(limit=ARXIV_LIMIT):
-    cat_q = "+OR+".join("cat:" + c for c in ARXIV_CATS)
-    url = (f"http://export.arxiv.org/api/query?search_query={cat_q}"
-           f"&sortBy=submittedDate&sortOrder=descending&max_results={limit}")
-    try:
-        with urllib.request.urlopen(url, timeout=30) as r:
-            data = r.read()
-    except Exception as e:
-        log("arxiv fetch failed:", e)
-        return []
-    ns = "{http://www.w3.org/2005/Atom}"
-    root = ET.fromstring(data)
-    items = []
-    for e in root.findall(ns + "entry"):
-        title = " ".join((e.find(ns + "title").text or "").split())
-        summary = " ".join((e.find(ns + "summary").text or "").split())
-        link = (e.find(ns + "id").text or "").strip()
-        published = (e.find(ns + "published").text or "")[:10]
-        items.append({
-            "source": "arxiv",
-            "title": title,
-            "url": link,
-            "description": summary[:600],
-            "published": published,
-            "raw_metric": _recency(published),
-            "extra": {},
-        })
-    log(f"arxiv: {len(items)} items")
-    return items
-
-
-def _recency(date_str):
-    """arXiv 没有热度字段，用新鲜度近似：30 天内线性衰减到 0。"""
-    try:
-        d = datetime.date.fromisoformat(date_str)
-        age = (datetime.date.today() - d).days
-        return max(0.0, min(1.0, 1.0 - age / 30.0))
-    except Exception:
-        return 0.5
+# ---------------- 分类 ----------------
+def classify(repo):
+    """依据 GitHub topics + 描述，把仓库归入某个 AI 子领域。确定性映射，稳定可筛。"""
+    topics = [t.lower() for t in (repo.get("topics") or [])]
+    desc = (repo.get("description") or "").lower()
+    text = " ".join(topics) + " | " + desc
+    for cat, kws in CAT_KEYWORDS:
+        for kw in kws:
+            if kw in text:
+                return cat
+    return "其他"
 
 
 # ---------------- 抓取：GitHub ----------------
 def fetch_github():
-    items = []
-    seen = set()
-    since = (datetime.date.today() - datetime.timedelta(days=90)).isoformat()
-    for topic in GH_TOPICS:
-        q = f"topic:{topic} stars:>{GH_MIN_STARS} pushed:>{since}"
-        url = ("https://api.github.com/search/repositories?q=" +
-               urllib.parse.quote(q) +
-               f"&sort=stars&order=desc&per_page={GH_PER_TOPIC}")
-        try:
-            req = urllib.request.Request(
-                url, headers={"User-Agent": "ai-hotspot",
-                              "Accept": "application/vnd.github+json"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                data = json.load(r)
-        except Exception as e:
-            log(f"github topic '{topic}' failed:", e)
-            time.sleep(2)
-            continue
-        for repo in data.get("items", []):
-            name = repo.get("full_name", "")
-            if name in seen:
-                continue
-            seen.add(name)
-            stars = repo.get("stargazers_count", 0) or 0
-            items.append({
-                "source": "github",
-                "title": name,
-                "url": repo.get("html_url", ""),
-                "description": (repo.get("description") or "")[:600],
-                "published": (repo.get("pushed_at") or "")[:10],
-                "raw_metric": float(stars),
-                "extra": {"stars": stars, "language": repo.get("language")},
-            })
-        time.sleep(1.5)  # 避免触发 GitHub 未认证限流（10 次/分钟）
-    log(f"github: {len(items)} items")
-    return items
-
-
-# ---------------- 抓取：Hugging Face ----------------
-def fetch_huggingface(limit=HF_LIMIT):
-    url = (f"https://huggingface.co/api/models?sort=trendingScore"
-           f"&direction=-1&limit={limit}&full=true&config=false")
+    since = (datetime.date.today() - datetime.timedelta(days=GH_RECENT_DAYS)).isoformat()
+    q = f"topic:{GH_TOPIC} stars:>{GH_MIN_STARS} pushed:>{since}"
+    url = ("https://api.github.com/search/repositories?q=" + urllib.parse.quote(q) +
+           f"&sort=stars&order=desc&per_page={GH_PER_PAGE}")
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "ai-hotspot"})
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "ai-hotspot",
+                          "Accept": "application/vnd.github+json"})
         with urllib.request.urlopen(req, timeout=30) as r:
             data = json.load(r)
     except Exception as e:
-        log("huggingface fetch failed:", e)
+        log("github fetch failed:", e)
         return []
     items = []
-    for m in data:
-        mid = m.get("id", "")
-        likes = m.get("likes", 0) or 0
-        downloads = m.get("downloads", 0) or 0
-        card = m.get("cardData") or {}
-        desc = card.get("description") or m.get("description") or ""
-        # 热度信号优先用 likes，没有 likes 时用 downloads 近似
-        metric = float(likes) if likes > 0 else float(downloads) / 1000.0
+    for repo in data.get("items", []):
+        stars = repo.get("stargazers_count", 0) or 0
         items.append({
-            "source": "huggingface",
-            "title": mid,
-            "url": "https://huggingface.co/" + mid,
-            "description": str(desc)[:600],
-            "published": (m.get("lastModified") or m.get("createdAt") or "")[:10],
-            "raw_metric": metric,
-            "extra": {"likes": likes, "downloads": downloads,
-                      "pipeline_tag": m.get("pipeline_tag")},
+            "source": "github",
+            "category": classify(repo),
+            "title": repo.get("full_name", ""),
+            "url": repo.get("html_url", ""),
+            "description": (repo.get("description") or "")[:600],
+            "published": (repo.get("pushed_at") or "")[:10],
+            "raw_metric": float(stars),
+            "extra": {"stars": stars,
+                      "language": repo.get("language"),
+                      "topics": repo.get("topics", [])},
         })
-    log(f"huggingface: {len(items)} items")
+    log(f"github: {len(items)} items")
     return items
 
 
 # ---------------- 打分 ----------------
 def score(items):
-    by_src = defaultdict(list)
+    """仅 GitHub 单一来源：用 star 数的 log 缩放做热度分（0~1），更直观。"""
+    if not items:
+        return items
+    mx = max((it["raw_metric"] for it in items), default=1) or 1
+    log_mx = math.log10(mx + 1)
     for it in items:
-        by_src[it["source"]].append(it)
-    for src, lst in by_src.items():
-        mx = max((it["raw_metric"] for it in lst), default=1) or 1
-        for it in lst:
-            norm = it["raw_metric"] / mx if mx > 0 else 0
-            it["norm"] = round(norm, 4)
-            it["heat_score"] = round(WEIGHTS.get(src, 0) * norm, 4)
+        it["heat_score"] = round(math.log10(it["raw_metric"] + 1) / log_mx, 4) if log_mx > 0 else 0
     items.sort(key=lambda x: x["heat_score"], reverse=True)
     for i, it in enumerate(items, 1):
         it["rank"] = i
@@ -217,7 +161,7 @@ def score(items):
 
 # ---------------- 大模型摘要 ----------------
 SUMMARY_SYS = ("你是一个 AI 领域编辑。请用一句简洁的中文（专业术语保留英文）"
-               "概括下面内容的核心贡献或用途，不超过 40 字，不要使用引号或编号。")
+               "概括下面 GitHub 项目的核心用途或亮点，不超过 40 字，不要使用引号或编号。")
 
 
 def call_llm(system, user):
@@ -239,7 +183,7 @@ def call_llm(system, user):
             r = requests.post(
                 cfg["base"].rstrip("/") + "/chat/completions",
                 headers={"Authorization": "Bearer " + cfg["key"],
-                         "Content-Type": "application/json"},
+                          "Content-Type": "application/json"},
                 json=payload, timeout=30)
             if r.status_code == 200:
                 return r.json()["choices"][0]["message"]["content"].strip()
@@ -257,7 +201,7 @@ def summarize(it):
     text = (it.get("description") or "").strip()
     if not text:
         return ""
-    user = f"标题：{it['title']}\n内容：{text[:800]}"
+    user = f"项目：{it['title']}\n描述：{text[:800]}"
     s = call_llm(SUMMARY_SYS, user)
     return s or ""
 
@@ -266,54 +210,76 @@ def summarize(it):
 def DEMO_ITEMS():
     today = datetime.date.today().isoformat()
     return [
-        # arXiv
-        {"source": "arxiv", "title": "LLaMA-Vision: Unified Multimodal Instruction Tuning at Scale",
-         "url": "https://arxiv.org/abs/2408.00001",
-         "description": "We present a vision-language model that unifies image and text understanding via a single instruction-tuning recipe, achieving strong zero-shot performance on OCR, chart and document tasks.",
-         "published": today, "raw_metric": 1.0,
-         "summary": "提出统一多模态指令微调方法，在 OCR 与文档理解上实现强零样本表现。", "extra": {}},
-        {"source": "arxiv", "title": "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion",
-         "url": "https://arxiv.org/abs/2303.04137",
-         "description": "We propose Diffusion Policy, a new way to represent robot visuomotor policies by denoising stochastic temporal ensembles of actions, showing significant improvement on 15 tasks.",
-         "published": today, "raw_metric": 0.8,
-         "summary": "用扩散模型表征机器人视觉运动策略，在 15 项任务上明显优于基线。", "extra": {}},
-        {"source": "arxiv", "title": "LoRA+: Efficient Low Rank Adaptation for Fine-Tuning",
-         "url": "https://arxiv.org/abs/2402.12354",
-         "description": "We show that the two matrices in LoRA should be trained with different learning rates and propose LoRA+ which converges faster with negligible extra cost.",
-         "published": today, "raw_metric": 0.6,
-         "summary": "指出 LoRA 双矩阵应分别设学习率，提出收敛更快的 LoRA+。", "extra": {}},
-        # GitHub
-        {"source": "github", "title": "deepseek-ai/DeepSeek-V3",
+        {"source": "github", "category": "大模型 / LLM",
+         "title": "deepseek-ai/DeepSeek-V3",
          "url": "https://github.com/deepseek-ai/DeepSeek-V3",
          "description": "Official implementation of DeepSeek-V3, a strong Mixture-of-Experts language model with 671B total parameters.",
          "published": today, "raw_metric": 95000.0,
-         "summary": "DeepSeek-V3 官方实现，671B 参数的 MoE 旗舰语言模型。", "extra": {"stars": 95000, "language": "Python"}},
-        {"source": "github", "title": "vllm-project/vllm",
+         "summary": "DeepSeek-V3 官方实现，671B 参数的 MoE 旗舰语言模型。",
+         "extra": {"stars": 95000, "language": "Python", "topics": ["llm", "moe", "pytorch"]}},
+        {"source": "github", "category": "推理 / 部署",
+         "title": "vllm-project/vllm",
          "url": "https://github.com/vllm-project/vllm",
          "description": "A high-throughput and memory-efficient inference and serving engine for LLMs.",
          "published": today, "raw_metric": 38000.0,
-         "summary": "高吞吐、省显存的大模型推理与服务引擎。", "extra": {"stars": 38000, "language": "Python"}},
-        {"source": "github", "title": "comfyanonymous/ComfyUI",
+         "summary": "高吞吐、省显存的大模型推理与服务引擎。",
+         "extra": {"stars": 38000, "language": "Python", "topics": ["llm", "inference", "serving"]}},
+        {"source": "github", "category": "多模态 / 视觉",
+         "title": "comfyanonymous/ComfyUI",
          "url": "https://github.com/comfyanonymous/ComfyUI",
          "description": "The most powerful and modular diffusion model GUI, API and backend with a graph/node based interface.",
          "published": today, "raw_metric": 72000.0,
-         "summary": "基于节点图的最强模块化扩散模型可视化与推理后端。", "extra": {"stars": 72000, "language": "Python"}},
-        # Hugging Face
-        {"source": "huggingface", "title": "meta-llama/Llama-3.2-11B-Vision-Instruct",
-         "url": "https://huggingface.co/meta-llama/Llama-3.2-11B-Vision-Instruct",
-         "description": "Instruction-tuned multimodal model from Meta, supporting image reasoning and chat.",
-         "published": today, "raw_metric": 1200.0,
-         "summary": "Meta 出品的指令微调多模态模型，支持图像推理与对话。", "extra": {"likes": 1200, "downloads": 500000, "pipeline_tag": "image-text-to-text"}},
-        {"source": "huggingface", "title": "Qwen/Qwen2.5-72B-Instruct",
-         "url": "https://huggingface.co/Qwen/Qwen2.5-72B-Instruct",
-         "description": "Qwen2.5 72B instruction-tuned model with strong coding and math ability.",
-         "published": today, "raw_metric": 2100.0,
-         "summary": "通义千问 72B 指令模型，代码与数学能力突出。", "extra": {"likes": 2100, "downloads": 900000, "pipeline_tag": "text-generation"}},
-        {"source": "huggingface", "title": "stabilityai/stable-diffusion-3.5-large",
-         "url": "https://huggingface.co/stabilityai/stable-diffusion-3.5-large",
-         "description": "The largest Stable Diffusion 3.5 model for high-quality text-to-image generation.",
-         "published": today, "raw_metric": 850.0,
-         "summary": "Stable Diffusion 3.5 最大版本，高质量文生图模型。", "extra": {"likes": 850, "downloads": 300000, "pipeline_tag": "text-to-image"}},
+         "summary": "基于节点图的最强模块化扩散模型可视化与推理后端。",
+         "extra": {"stars": 72000, "language": "Python", "topics": ["diffusion", "stable-diffusion", "image-generation"]}},
+        {"source": "github", "category": "智能体 / Agent",
+         "title": "langchain-ai/langchain",
+         "url": "https://github.com/langchain-ai/langchain",
+         "description": "Build context-aware reasoning applications with LLMs. Frameworks for agents, RAG and orchestration.",
+         "published": today, "raw_metric": 95000.0,
+         "summary": "面向 LLM 应用的开发框架，内置 Agent、RAG 与编排能力。",
+         "extra": {"stars": 95000, "language": "Python", "topics": ["llm", "agents", "framework"]}},
+        {"source": "github", "category": "检索增强 / RAG",
+         "title": "run-llama/llama_index",
+         "url": "https://github.com/run-llama/llama_index",
+         "description": "LlamaIndex is a data framework for your LLM applications to ingest, structure and retrieve private data.",
+         "published": today, "raw_metric": 38000.0,
+         "summary": "面向 LLM 的数据框架，专注私有数据的检索增强（RAG）。",
+         "extra": {"stars": 38000, "language": "Python", "topics": ["rag", "llm", "retrieval"]}},
+        {"source": "github", "category": "语音 / 音频",
+         "title": "openai/whisper",
+         "url": "https://github.com/openai/whisper",
+         "description": "Robust speech recognition via large-scale weak supervision. Approach to multilingual ASR and translation.",
+         "published": today, "raw_metric": 75000.0,
+         "summary": "OpenAI 开源的强鲁棒性多语种语音识别（ASR）模型。",
+         "extra": {"stars": 75000, "language": "Python", "topics": ["speech", "asr", "audio"]}},
+        {"source": "github", "category": "训练 / 微调",
+         "title": "hiyouga/LLaMA-Factory",
+         "url": "https://github.com/hiyouga/LLaMA-Factory",
+         "description": "Easy and efficient LLM fine-tuning with LoRA, QLoRA and RLHF. Supports hundreds of models.",
+         "published": today, "raw_metric": 42000.0,
+         "summary": "易用的 LLM 微调框架，支持 LoRA / QLoRA / RLHF。",
+         "extra": {"stars": 42000, "language": "Python", "topics": ["llm", "lora", "fine-tuning"]}},
+        {"source": "github", "category": "框架 / 工具",
+         "title": "huggingface/transformers",
+         "url": "https://github.com/huggingface/transformers",
+         "description": "State-of-the-art Machine Learning for PyTorch, JAX and TensorFlow. Thousands of pretrained models.",
+         "published": today, "raw_metric": 140000.0,
+         "summary": "最流行的深度学习模型库，集成数千个预训练模型。",
+         "extra": {"stars": 140000, "language": "Python", "topics": ["pytorch", "transformers", "nlp"]}},
+        {"source": "github", "category": "多模态 / 视觉",
+         "title": "facebookresearch/segment-anything",
+         "url": "https://github.com/facebookresearch/segment-anything",
+         "description": "The Segment Anything Model (SAM): a foundation model for image segmentation with promptable masks.",
+         "published": today, "raw_metric": 48000.0,
+         "summary": "Meta 的 SAM：可提示驱动的通用图像分割基础模型。",
+         "extra": {"stars": 48000, "language": "Python", "topics": ["computer-vision", "segmentation", "vision"]}},
+        {"source": "github", "category": "智能体 / Agent",
+         "title": "microsoft/autogen",
+         "url": "https://github.com/microsoft/autogen",
+         "description": "A framework that enables development of LLM applications using multiple agents that can converse.",
+         "published": today, "raw_metric": 40000.0,
+         "summary": "微软开源的多智能体对话框架，用于编排 LLM 应用。",
+         "extra": {"stars": 40000, "language": "Python", "topics": ["llm", "multi-agent", "framework"]}},
     ]
 
 
@@ -328,7 +294,7 @@ def main():
     if args.demo:
         items = DEMO_ITEMS()
     else:
-        items = fetch_arxiv() + fetch_github() + fetch_huggingface()
+        items = fetch_github()
 
     items = score(items)
 
@@ -343,7 +309,8 @@ def main():
 
     out = {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
-        "weights": WEIGHTS,
+        "source": "github",
+        "categories": CATEGORIES,
         "count": len(items),
         "items": items,
     }
