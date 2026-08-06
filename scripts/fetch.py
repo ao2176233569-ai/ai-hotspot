@@ -27,6 +27,7 @@ import argparse
 import datetime
 import urllib.request
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ---------------- 配置 ----------------
 def load_dotenv(path=".env"):
@@ -172,11 +173,13 @@ def call_llm(system, user):
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
         "temperature": 0.3,
-        "max_tokens": 400,
+        "max_tokens": 2000,
     }
-    for cfg in (PRIMARY, FALLBACK):
-        if not cfg["key"]:
-            continue
+    # 组织尝试顺序：PRIMARY -> FALLBACK -> 若只有一个 key 则再试一次 PRIMARY
+    cfgs = [c for c in (PRIMARY, FALLBACK) if c["key"]]
+    if len(cfgs) == 1:
+        cfgs = cfgs * 3
+    for attempt, cfg in enumerate(cfgs, 1):
         payload["model"] = cfg["model"]
         try:
             import requests
@@ -184,9 +187,15 @@ def call_llm(system, user):
                 cfg["base"].rstrip("/") + "/chat/completions",
                 headers={"Authorization": "Bearer " + cfg["key"],
                           "Content-Type": "application/json"},
-                json=payload, timeout=30)
+                json=payload, timeout=180)
             if r.status_code == 200:
-                return r.json()["choices"][0]["message"]["content"].strip()
+                msg = r.json()["choices"][0]["message"]
+                content = (msg.get("content") or "").strip()
+                if content:
+                    return content
+                # 推理模型可能把额度占满导致 content 为空，重试下一配置
+                log(f"llm empty content (try {attempt}), retry")
+                continue
             if r.status_code == 429:
                 time.sleep(5)
                 continue
@@ -204,6 +213,27 @@ def summarize(it):
     user = f"项目：{it['title']}\n描述：{text[:800]}"
     s = call_llm(SUMMARY_SYS, user)
     return s or ""
+
+
+def summarize_all(items, workers=6):
+    """并发调用 LLM 为所有 item 生成摘要，缩短总耗时。summarize 本身无副作用，线程安全。"""
+    if not (PRIMARY["key"] or FALLBACK["key"]):
+        for it in items:
+            it.setdefault("summary", "")
+        return
+    total = len(items)
+    done = 0
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futs = {ex.submit(summarize, it): it for it in items}
+        for f in as_completed(futs):
+            it = futs[f]
+            try:
+                it["summary"] = f.result()
+            except Exception:
+                it["summary"] = ""
+            done += 1
+            if done % 10 == 0 or done == total:
+                log(f"summary {done}/{total}")
 
 
 # ---------------- 示例数据（离线预览） ----------------
@@ -300,9 +330,8 @@ def main():
 
     use_llm = bool(PRIMARY["key"] or FALLBACK["key"])
     if not args.demo and use_llm:
-        for it in items:
-            it["summary"] = summarize(it)
-            time.sleep(0.5)  # 温和限速，避免触发模型限流
+        summarize_all(items, workers=3)
+        log("all summaries done")
     else:
         for it in items:
             it.setdefault("summary", "")
