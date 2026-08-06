@@ -33,6 +33,13 @@
   .wrap { max-width: 1080px; margin: 0 auto; }
   header h1 { margin: 0 0 4px; font-size: 24px; }
   header p { margin: 0; color: #cbd5e1; font-size: 13px; }
+  .updated {
+    margin: 10px 0 0; font-size: 14px; font-weight: 600; color: #fbbf24;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(251,191,36,.12); padding: 5px 12px; border-radius: 999px;
+  }
+  .updated .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
   .toolbar {
     max-width: 1080px; margin: 18px auto; padding: 0 20px;
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
@@ -85,6 +92,7 @@
   <div class="wrap">
     <h1>AI 热点 · 每日聚合</h1>
     <p id="subtitle">自动聚合 arXiv / GitHub / Hugging Face 最火 AI 内容，并用中文摘要</p>
+    <p class="updated"><span class="dot"></span><span id="updated-text">最后更新：加载中…</span></p>
   </div>
 </header>
 
@@ -111,6 +119,26 @@ let state = { src: "all", sort: "heat", q: "" };
 const SRC_LABEL = { arxiv: "arXiv", github: "GitHub", huggingface: "Hugging Face" };
 const MAX_W = 0.5; // 热度满分基准（GitHub 权重）
 
+// 把 data.json 里的 UTC 时间转成北京时间，并给出相对“多久前”
+function fmtBeijing(iso) {
+  if (!iso) return "未知";
+  const d = new Date(iso + "Z"); // 视为 UTC
+  if (isNaN(d.getTime())) return iso;
+  const bj = new Date(d.getTime() + 8 * 3600 * 1000); // UTC+8
+  const p = n => String(n).padStart(2, "0");
+  const s = `${bj.getUTCFullYear()}-${p(bj.getUTCMonth() + 1)}-${p(bj.getUTCDate())} `
+          + `${p(bj.getUTCHours())}:${p(bj.getUTCMinutes())}`;
+  const diff = Date.now() - bj.getTime();
+  let rel;
+  if (diff >= 0) {
+    const h = Math.floor(diff / 3600000);
+    rel = h < 1 ? "刚刚" : h < 24 ? `${h} 小时前` : `${Math.floor(h / 24)} 天前`;
+  } else {
+    rel = "即将更新";
+  }
+  return `${s}（北京时间）· ${rel}`;
+}
+
 async function load() {
   try {
     const res = await fetch("./data.json", { cache: "no-store" });
@@ -122,7 +150,8 @@ async function load() {
   }
   const g = DATA.generated_at || "";
   document.getElementById("subtitle").textContent =
-    `更新于 ${g} ｜ 权重 GitHub 0.5 / HF 0.3 / arXiv 0.2 ｜ 共 ${DATA.count || 0} 条`;
+    `权重 GitHub 0.5 / HF 0.3 / arXiv 0.2 ｜ 共 ${DATA.count || 0} 条`;
+  document.getElementById("updated-text").textContent = "最后更新：" + fmtBeijing(g);
   render();
 }
 

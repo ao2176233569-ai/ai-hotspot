@@ -2,8 +2,8 @@ name: Build AI Hotspot
 
 on:
   schedule:
-    # 每天 17:00 UTC = 北京次日 01:00，抓取并刷新榜单
-    - cron: "0 17 * * *"
+    # 每天 00:00 与 12:00 UTC = 北京 08:00 与 20:00，各刷新一次榜单
+    - cron: "0 0,12 * * *"
   workflow_dispatch:
 
 permissions:
