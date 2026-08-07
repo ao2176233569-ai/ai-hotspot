@@ -15,11 +15,12 @@ AI 热点聚合脚本（GitHub 版）
   LLM_BASE_URL    主用模型 Base URL（默认 https://apihub.agnes-ai.com/v1）
   LLM_MODEL       主用模型名（默认 agnes-2.0-flash）
   FALLBACK_API_KEY / FALLBACK_BASE_URL / FALLBACK_MODEL  备用模型（可同平台不同 Key）
-未设置任何 Key 时，摘要字段留空，脚本仍会产出 data.json（用原文做兜底展示）。
+未设置任何 Key 时，摘要由离线中文词典兜底，脚本仍会产出全中文 data.json。
 本地可用 .env 文件（参考 .env.example）放置以上变量，脚本启动时会自动加载。
 """
 import os
 import sys
+import re
 import json
 import math
 import time
@@ -101,6 +102,86 @@ FALLBACK = {
 
 def log(*a):
     print("[fetch]", *a, file=sys.stderr, flush=True)
+
+
+# ---------------- 中文摘要缓存（离线兜底，保证每张卡片都是中文） ----------------
+CACHE = {}
+
+def load_cache():
+    """加载手写/历史中文摘要缓存（按仓库 full_name 索引）。命中即免网络、必中文。"""
+    global CACHE
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = ["summaries_cache.json",
+                  os.path.join(here, "..", "summaries_cache.json")]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    CACHE = json.load(f)
+                log("cache loaded:", len(CACHE), "entries from", p)
+            except Exception as e:
+                log("cache load failed:", e)
+            break
+
+load_cache()
+
+# 常用 AI/ML 术语 → 中文，用于离线兜底翻译（按长度降序匹配，避免短词误伤长词）
+TERM_ZH = {
+    "machine learning": "机器学习", "deep learning": "深度学习",
+    "neural network": "神经网络", "neural networks": "神经网络",
+    "natural language processing": "自然语言处理",
+    "large language model": "大语言模型", "language model": "语言模型",
+    "language models": "语言模型", "reinforcement learning": "强化学习",
+    "transfer learning": "迁移学习", "fine-tuning": "微调", "fine tuning": "微调",
+    "pretraining": "预训练", "pretrained": "预训练", "pre-trained": "预训练",
+    "inference": "推理", "serving": "服务部署", "deployment": "部署",
+    "framework": "框架", "library": "库", "libraries": "库", "toolkit": "工具包",
+    "tool": "工具", "tools": "工具", "api": "API", "sdk": "SDK", "cli": "命令行工具",
+    "model": "模型", "models": "模型", "dataset": "数据集", "datasets": "数据集",
+    "training": "训练", "optimizer": "优化器", "quantization": "量化",
+    "embedding": "嵌入", "embeddings": "嵌入向量", "vector database": "向量数据库",
+    "vector": "向量", "retrieval": "检索", "search": "搜索", "semantic": "语义",
+    "rag": "检索增强", "agent": "智能体", "agents": "智能体",
+    "multi-agent": "多智能体", "workflow": "工作流", "diffusion model": "扩散模型",
+    "diffusion": "扩散", "text-to-image": "文生图", "image generation": "图像生成",
+    "image": "图像", "images": "图像", "video": "视频", "audio": "音频",
+    "speech": "语音", "voice": "语音", "tts": "语音合成", "asr": "语音识别",
+    "music": "音乐", "ocr": "文字识别", "segmentation": "分割", "detection": "检测",
+    "object detection": "目标检测", "transformer": "Transformer", "gpt": "GPT",
+    "llm": "大语言模型", "moe": "混合专家", "pytorch": "PyTorch",
+    "tensorflow": "TensorFlow", "jax": "JAX", "python": "Python",
+    "gpu": "GPU", "acceleration": "加速", "accelerate": "加速",
+    "distributed": "分布式", "scalable": "可扩展", "open source": "开源",
+    "open-source": "开源", "real-time": "实时", "real time": "实时",
+    "benchmark": "基准测试", "benchmarks": "基准测试", "tutorial": "教程",
+    "tutorials": "教程", "course": "课程", "courses": "课程", "examples": "示例",
+    "chatbot": "对话机器人", "chat": "对话", "prompt": "提示词", "prompts": "提示词",
+    "observability": "可观测性", "monitoring": "监控", "document": "文档",
+    "documents": "文档", "documentation": "文档", "photo": "照片", "photos": "照片",
+    "management": "管理", "platform": "平台", "quant": "量化",
+    "quantitative": "量化", "finance": "金融", "financial": "金融",
+    "research": "研究", "pipeline": "流水线", "pipelines": "流水线",
+    "automation": "自动化", "generative": "生成式", "generative ai": "生成式 AI",
+}
+
+
+def offline_zh_summary(it):
+    """LLM / 缓存都不可用时，用术语词典把英文描述翻译出一句可信的中文摘要。"""
+    title = it["title"]
+    if title in CACHE:
+        return CACHE[title]
+    desc = (it.get("description") or "").strip()
+    if not desc:
+        return "（暂无简介）"
+    seg = re.split(r'(?<=[.!?])\s', desc)[0]   # 取第一句
+    for term in sorted(TERM_ZH, key=len, reverse=True):
+        if re.search(r'(?i)\b' + re.escape(term) + r'\b', seg):
+            seg = re.sub(r'(?i)\b' + re.escape(term) + r'\b', TERM_ZH[term], seg)
+    seg = seg.strip()
+    if len(seg) > 70:
+        seg = seg[:70] + "…"
+    return "（简介）" + seg
+
 
 
 # ---------------- 分类 ----------------
@@ -209,21 +290,18 @@ def call_llm(system, user):
 
 
 def fallback_summary(it):
-    """LLM 不可用/超时时的确定性兜底：用仓库描述生成一句中文摘要，保证卡片有内容。"""
-    desc = (it.get("description") or "").strip()
-    if desc:
-        s = desc.split(". ")[0]
-        if len(s) > 60:
-            s = s[:60] + "…"
-        return "（项目简介）" + s
-    return "（暂无简介）"
+    """LLM / 缓存都不可用时的确定性兜底：返回离线中文摘要，保证卡片有中文内容。"""
+    return offline_zh_summary(it)
 
 
 def summarize(it, deadline):
-    """单条摘要：超过全局截止时间直接返回 None（上层走兜底）。"""
+    """单条摘要：命中缓存直接返回（免网络、必中文）；否则在截止前试一次 LLM。"""
+    title = it["title"]
+    if title in CACHE:
+        return CACHE[title]
     if time.time() > deadline:
         return None
-    user = f"项目：{it['title']}\n描述：{(it.get('description') or '')[:800]}"
+    user = f"项目：{title}\n描述：{(it.get('description') or '')[:800]}"
     return call_llm(SUMMARY_SYS, user)
 
 
