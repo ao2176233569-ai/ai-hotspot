@@ -47,11 +47,16 @@ load_dotenv()
 
 # GitHub 抓取：围绕一个宽泛的 AI topic，取近期活跃且 star 较高的项目
 GH_TOPIC       = "machine-learning"
-GH_PER_PAGE    = 60
+GH_PER_PAGE    = 30
 GH_MIN_STARS   = 100
 GH_RECENT_DAYS = 30
 
-KEEP_TOP_N     = 60
+KEEP_TOP_N     = 30
+
+# 摘要阶段保护：总预算 + 单次超时，保证构建绝不卡在 LLM 上
+SUMMARY_DEADLINE_SEC = 18 * 60   # 到点后剩余项直接走兜底摘要
+SUMMARY_TIMEOUT      = 60        # 单次 LLM HTTP 超时（秒）
+SUMMARY_MAX_TOKENS   = 800       # 生成上限（仅需一句 ≤40 字摘要）
 
 # 分类体系（顺序即优先级：越具体的子类越靠前，避免被宽泛类吞掉）
 CATEGORIES = ["大模型 / LLM", "智能体 / Agent", "多模态 / 视觉", "检索增强 / RAG",
@@ -166,20 +171,18 @@ SUMMARY_SYS = ("你是一个 AI 领域编辑。请用一句简洁的中文（专
 
 
 def call_llm(system, user):
-    if not PRIMARY["key"] and not FALLBACK["key"]:
+    """调用主/备模型生成摘要。单次尝试、短超时；失败返回 None 由上层兜底。"""
+    cfgs = [c for c in (PRIMARY, FALLBACK) if c["key"]]
+    if not cfgs:
         return None
     payload = {
         "model": None,
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
         "temperature": 0.3,
-        "max_tokens": 2000,
+        "max_tokens": SUMMARY_MAX_TOKENS,
     }
-    # 组织尝试顺序：PRIMARY -> FALLBACK -> 若只有一个 key 则再试一次 PRIMARY
-    cfgs = [c for c in (PRIMARY, FALLBACK) if c["key"]]
-    if len(cfgs) == 1:
-        cfgs = cfgs * 3
-    for attempt, cfg in enumerate(cfgs, 1):
+    for cfg in cfgs:  # PRIMARY -> FALLBACK，各最多尝试一次
         payload["model"] = cfg["model"]
         try:
             import requests
@@ -187,50 +190,60 @@ def call_llm(system, user):
                 cfg["base"].rstrip("/") + "/chat/completions",
                 headers={"Authorization": "Bearer " + cfg["key"],
                           "Content-Type": "application/json"},
-                json=payload, timeout=180)
+                json=payload, timeout=SUMMARY_TIMEOUT)
             if r.status_code == 200:
                 msg = r.json()["choices"][0]["message"]
                 content = (msg.get("content") or "").strip()
                 if content:
                     return content
-                # 推理模型可能把额度占满导致 content 为空，重试下一配置
-                log(f"llm empty content (try {attempt}), retry")
+                log("llm empty content, next cfg")  # 推理模型额度占满，转下一配置
                 continue
             if r.status_code == 429:
-                time.sleep(5)
+                time.sleep(3)
                 continue
             log("llm err", r.status_code, r.text[:200])
         except Exception as e:
             log("llm call failed:", e)
-        time.sleep(2)
+        time.sleep(1)
     return None
 
 
-def summarize(it):
-    text = (it.get("description") or "").strip()
-    if not text:
-        return ""
-    user = f"项目：{it['title']}\n描述：{text[:800]}"
-    s = call_llm(SUMMARY_SYS, user)
-    return s or ""
+def fallback_summary(it):
+    """LLM 不可用/超时时的确定性兜底：用仓库描述生成一句中文摘要，保证卡片有内容。"""
+    desc = (it.get("description") or "").strip()
+    if desc:
+        s = desc.split(". ")[0]
+        if len(s) > 60:
+            s = s[:60] + "…"
+        return "（项目简介）" + s
+    return "（暂无简介）"
+
+
+def summarize(it, deadline):
+    """单条摘要：超过全局截止时间直接返回 None（上层走兜底）。"""
+    if time.time() > deadline:
+        return None
+    user = f"项目：{it['title']}\n描述：{(it.get('description') or '')[:800]}"
+    return call_llm(SUMMARY_SYS, user)
 
 
 def summarize_all(items, workers=6):
-    """并发调用 LLM 为所有 item 生成摘要，缩短总耗时。summarize 本身无副作用，线程安全。"""
-    if not (PRIMARY["key"] or FALLBACK["key"]):
-        for it in items:
-            it.setdefault("summary", "")
+    """并发摘要 + 全局截止时间保护：到点/失败均走兜底，构建永不卡在 LLM 上。"""
+    if not items:
         return
+    start = time.time()
+    deadline = start + SUMMARY_DEADLINE_SEC
     total = len(items)
     done = 0
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(summarize, it): it for it in items}
+        futs = {ex.submit(summarize, it, deadline): it for it in items}
         for f in as_completed(futs):
             it = futs[f]
             try:
-                it["summary"] = f.result()
+                s = f.result()
             except Exception:
-                it["summary"] = ""
+                s = None
+            it["summary"] = (s.strip() if s else fallback_summary(it))
             done += 1
             if done % 10 == 0 or done == total:
                 log(f"summary {done}/{total}")
@@ -328,9 +341,8 @@ def main():
 
     items = score(items)
 
-    use_llm = bool(PRIMARY["key"] or FALLBACK["key"])
-    if not args.demo and use_llm:
-        summarize_all(items, workers=3)
+    if not args.demo:
+        summarize_all(items, workers=6)
         log("all summaries done")
     else:
         for it in items:
