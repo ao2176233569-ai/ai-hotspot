@@ -1,358 +1,538 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI 热点 · 每日 GitHub 热门项目</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --bg: #0a0e16;
-    --bg-2: #0e1320;
-    --card: #121826;
-    --card-hover: #161d2e;
-    --text: #e8ecf3;
-    --sub: #8b95a7;
-    --line: #232c3d;
-    --hot: #ff5a36;          /* 热点强调色：暖橙红 */
-    --hot-soft: rgba(255,90,54,.14);
+  /* ============ 主题变量 ============ */
+  :root, [data-theme="dark"] {
+    --bg: #080b12;
+    --bg-2: #0c111c;
+    --surface: #111826;
+    --surface-2: #0e1521;
+    --card: #121a2a;
+    --card-hover: #162034;
+    --text: #e9edf5;
+    --text-strong: #ffffff;
+    --sub: #93a0b5;
+    --faint: #5d6880;
+    --line: #1e2738;
+    --line-strong: #2a3650;
+    --hot: #ff6a3d;
+    --hot-2: #ffb347;
+    --hot-soft: rgba(255,106,61,.12);
+    --accent: #6ea8fe;
+    --good: #34d399;
+    --shadow: 0 18px 50px rgba(0,0,0,.5);
+    --grid-line: rgba(255,255,255,.022);
+    --glow: rgba(255,106,61,.16);
   }
+  [data-theme="light"] {
+    --bg: #f6f7fb;
+    --bg-2: #eef1f7;
+    --surface: #ffffff;
+    --surface-2: #fbfcfe;
+    --card: #ffffff;
+    --card-hover: #ffffff;
+    --text: #1b2333;
+    --text-strong: #0a0f1c;
+    --sub: #5a6679;
+    --faint: #98a2b3;
+    --line: #e6e9f0;
+    --line-strong: #d3d9e4;
+    --hot: #ef5a2a;
+    --hot-2: #f08c1f;
+    --hot-soft: rgba(239,90,42,.10);
+    --accent: #2f6fed;
+    --good: #0ca678;
+    --shadow: 0 16px 44px rgba(31,45,80,.12);
+    --grid-line: rgba(20,30,60,.03);
+    --glow: rgba(239,90,42,.10);
+  }
+
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    transition: background .4s ease, color .4s ease;
   }
-  /* 背景：深色 + 极淡网格纹理 + 顶部橙色光晕（记忆点） */
+  /* 背景：顶部暖光晕 + 极淡网格（两种主题通用） */
   body::before {
-    content: "";
-    position: fixed; inset: 0; z-index: -2;
+    content: ""; position: fixed; inset: 0; z-index: -2;
     background:
-      radial-gradient(900px 420px at 50% -120px, rgba(255,90,54,.18), transparent 70%),
-      linear-gradient(180deg, var(--bg-2), var(--bg) 38%);
+      radial-gradient(1000px 460px at 50% -160px, var(--glow), transparent 70%),
+      linear-gradient(180deg, var(--bg-2), var(--bg) 40%);
   }
   body::after {
-    content: "";
-    position: fixed; inset: 0; z-index: -1; opacity: .5;
+    content: ""; position: fixed; inset: 0; z-index: -1; opacity: 1; pointer-events: none;
     background-image:
-      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-    background-size: 44px 44px;
-    mask-image: radial-gradient(circle at 50% 0%, #000 0%, transparent 75%);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(circle at 50% -5%, #000 0%, transparent 78%);
+            mask-image: radial-gradient(circle at 50% -5%, #000 0%, transparent 78%);
   }
 
-  /* ===== Hero ===== */
-  header {
-    position: relative;
-    max-width: 1180px; margin: 0 auto;
-    padding: 64px 24px 30px;
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ============ 顶栏 ============ */
+  header.hero { position: relative; padding: 58px 0 16px; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 40px;
   }
+  .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; letter-spacing: .01em; }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--hot), var(--hot-2));
+    box-shadow: 0 6px 18px var(--glow);
+    display: grid; place-items: center; color: #fff; font-size: 15px;
+  }
+  .brand small { color: var(--faint); font-weight: 500; font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .12em; }
+  .theme-toggle {
+    border: 1px solid var(--line); background: var(--surface); color: var(--sub);
+    width: 40px; height: 40px; border-radius: 11px; cursor: pointer; font-size: 17px;
+    display: grid; place-items: center; transition: all .2s ease;
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-1px); }
+
   .kicker {
     display: inline-flex; align-items: center; gap: 8px;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
-    color: var(--hot); margin-bottom: 18px;
+    font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--hot); margin-bottom: 16px;
   }
   .kicker .pulse {
     width: 8px; height: 8px; border-radius: 50%; background: var(--hot);
-    box-shadow: 0 0 0 0 rgba(255,90,54,.6); animation: pulse 2.2s infinite;
+    box-shadow: 0 0 0 0 rgba(255,106,61,.6); animation: pulse 2.2s infinite;
   }
   @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255,90,54,.55); }
-    70% { box-shadow: 0 0 0 12px rgba(255,90,54,0); }
-    100% { box-shadow: 0 0 0 0 rgba(255,90,54,0); }
+    0% { box-shadow: 0 0 0 0 rgba(255,106,61,.5); }
+    70% { box-shadow: 0 0 0 12px rgba(255,106,61,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,106,61,0); }
   }
-  header h1 {
-    margin: 0;
-    font-family: "Noto Serif SC", serif; font-weight: 900;
-    font-size: clamp(38px, 6vw, 68px); line-height: 1.04; letter-spacing: -.01em;
+  h1.title {
+    margin: 0; font-family: "Noto Serif SC", serif; font-weight: 900;
+    font-size: clamp(40px, 6.4vw, 72px); line-height: 1.02; letter-spacing: -.015em;
+    color: var(--text-strong);
   }
-  header h1 .ai { color: var(--hot); }
-  header .lede {
-    margin: 16px 0 0; max-width: 620px;
-    color: var(--sub); font-size: 16px;
+  h1.title .ai {
+    background: linear-gradient(120deg, var(--hot), var(--hot-2));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   }
+  .lede { margin: 18px 0 0; max-width: 640px; color: var(--sub); font-size: 16px; }
   .updated {
     margin-top: 22px; display: inline-flex; align-items: center; gap: 9px;
-    font-family: "JetBrains Mono", monospace; font-size: 13px;
-    color: #cdd5e3; background: var(--hot-soft);
-    border: 1px solid rgba(255,90,54,.35);
+    font-family: "JetBrains Mono", monospace; font-size: 13px; color: #cdd5e3;
+    background: var(--hot-soft); border: 1px solid color-mix(in srgb, var(--hot) 32%, transparent);
     padding: 7px 14px; border-radius: 999px;
   }
-  .updated .dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399;
-    box-shadow: 0 0 0 3px rgba(52,211,153,.22); }
+  [data-theme="light"] .updated { color: var(--text); }
+  .updated .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent); }
 
-  /* ===== 工具栏 ===== */
+  /* ============ 概览仪表盘 ============ */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 36px 0 8px;
+  }
+  .stat {
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 16px;
+    position: relative; overflow: hidden;
+  }
+  .stat::before {
+    content: ""; position: absolute; right: -20px; top: -20px; width: 80px; height: 80px;
+    background: radial-gradient(circle, var(--glow), transparent 70%); opacity: .8;
+  }
+  .stat .label { font-size: 12.5px; color: var(--sub); display: flex; align-items: center; gap: 7px; }
+  .stat .num {
+    font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 30px;
+    color: var(--text-strong); margin-top: 8px; letter-spacing: -.02em;
+  }
+  .stat .num .u { font-size: 14px; color: var(--faint); margin-left: 3px; }
+
+  /* ============ 工具栏 ============ */
   .toolbar {
-    max-width: 1180px; margin: 26px auto 0; padding: 0 24px;
     display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
-    position: sticky; top: 0; z-index: 30;
-    padding-top: 14px; padding-bottom: 14px;
-    background: linear-gradient(180deg, var(--bg) 62%, rgba(10,14,22,0));
-    backdrop-filter: blur(6px);
+    position: sticky; top: 0; z-index: 30; margin: 26px 0 0;
+    padding: 14px 0; background: linear-gradient(180deg, var(--bg) 64%, transparent);
+    backdrop-filter: blur(8px);
   }
   .filters { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; }
   .filters button {
     border: 1px solid var(--line); background: var(--card); color: var(--sub);
-    padding: 7px 15px; border-radius: 999px; cursor: pointer; font-size: 13px;
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 13px;
     font-family: inherit; transition: all .18s ease; white-space: nowrap;
   }
-  .filters button:hover { color: var(--text); border-color: #364257; }
+  .filters button:hover { color: var(--text); border-color: var(--line-strong); }
   .filters button.active {
-    background: var(--hot); color: #fff; border-color: var(--hot);
-    box-shadow: 0 4px 16px rgba(255,90,54,.35);
+    background: linear-gradient(135deg, var(--hot), var(--hot-2)); color: #fff; border-color: transparent;
+    box-shadow: 0 6px 18px var(--glow);
   }
-  .toolbar .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .toolbar select, .toolbar input {
-    border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
+  .controls { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+  .controls select, .controls input {
+    border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px;
     font-size: 13px; background: var(--card); color: var(--text); font-family: inherit;
     transition: border-color .18s, box-shadow .18s;
   }
-  .toolbar select { cursor: pointer; }
-  .toolbar input { min-width: 210px; }
-  .toolbar input::placeholder { color: #5c6678; }
-  .toolbar input:focus, .toolbar select:focus {
-    outline: none; border-color: var(--hot);
-    box-shadow: 0 0 0 3px var(--hot-soft);
+  .controls input { min-width: 220px; }
+  .controls input::placeholder { color: var(--faint); }
+  .controls input:focus, .controls select:focus {
+    outline: none; border-color: var(--hot); box-shadow: 0 0 0 3px var(--hot-soft);
   }
+  .btn-ghost {
+    border: 1px solid var(--line); background: var(--card); color: var(--sub);
+    padding: 9px 13px; border-radius: 11px; cursor: pointer; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 6px; transition: all .18s ease; white-space: nowrap;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--line-strong); }
 
-  /* ===== 卡片网格 ===== */
+  /* ============ 卡片网格 ============ */
   .grid {
-    max-width: 1180px; margin: 0 auto; padding: 22px 24px 70px;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 16px; margin: 18px 0 70px;
   }
   .card {
-    position: relative; overflow: hidden;
-    background: linear-gradient(180deg, var(--card), #0f1622);
-    border: 1px solid var(--line); border-radius: 16px;
-    padding: 20px 20px 18px;
-    display: flex; flex-direction: column; gap: 12px;
-    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
-    animation: rise .55s cubic-bezier(.21,.7,.4,1) both;
+    position: relative; overflow: hidden; cursor: pointer;
+    background: linear-gradient(180deg, var(--card), var(--surface-2));
+    border: 1px solid var(--line); border-radius: 18px; padding: 20px 20px 16px;
+    display: flex; flex-direction: column; gap: 11px;
+    transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease, background .22s ease;
+    /* 初始态：用于滚动渐现 */
+    opacity: 0; transform: translateY(16px);
   }
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: none; }
-  }
-  .card::before { /* 左侧热度光带 */
-    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: linear-gradient(180deg, var(--hot), transparent);
-    opacity: .0; transition: opacity .2s ease;
+  .card.in { opacity: 1; transform: none; }
+  .card::after { /* 悬停暖光描边 */
+    content: ""; position: absolute; inset: 0; border-radius: 18px; pointer-events: none;
+    background: radial-gradient(420px 180px at 50% -40%, var(--glow), transparent 70%);
+    opacity: 0; transition: opacity .25s ease;
   }
   .card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255,90,54,.55);
-    box-shadow: 0 16px 44px rgba(0,0,0,.45), 0 0 0 1px rgba(255,90,54,.35);
-    background: linear-gradient(180deg, var(--card-hover), #101827);
+    transform: translateY(-5px); border-color: color-mix(in srgb, var(--hot) 45%, var(--line));
+    box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--hot) 30%, transparent);
   }
-  .card:hover::before { opacity: 1; }
+  .card:hover::after { opacity: 1; }
 
   .card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .cat { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--sub); }
-  .cat .swatch { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255,255,255,.04); }
+  .cat .swatch { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, var(--swatch,#888) 14%, transparent); background: var(--swatch,#888); }
   .rank {
-    font-family: "JetBrains Mono", monospace; font-weight: 700;
-    font-size: 15px; letter-spacing: -.02em;
+    font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 15px;
+    letter-spacing: -.02em; color: var(--hot);
   }
-  .card h3 { margin: 2px 0 0; font-size: 17px; line-height: 1.32; font-weight: 700; }
-  .card h3 a { color: var(--text); text-decoration: none; transition: color .18s; }
-  .card h3 a:hover { color: var(--hot); }
-  .summary {
-    font-size: 14px; color: #c4ccda; margin: 0; line-height: 1.6;
-  }
-  .desc {
-    font-size: 13px; color: var(--sub); margin: 0;
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-  }
-  .meta { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--sub); margin-top: 2px; }
-  .stars { font-family: "JetBrains Mono", monospace; color: #f4d58d; font-weight: 500; white-space: nowrap; }
+  .card h3 { margin: 0; font-size: 17px; line-height: 1.3; font-weight: 700; color: var(--text-strong); }
+  .card h3 a { color: inherit; text-decoration: none; }
+  .summary { font-size: 14px; color: var(--text); margin: 0; line-height: 1.62; opacity: .92; }
+  .desc { font-size: 13px; color: var(--sub); margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .meta { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--sub); }
+  .stars { font-family: "JetBrains Mono", monospace; color: #f4d58d; font-weight: 600; white-space: nowrap; }
+  [data-theme="light"] .stars { color: #b8821a; }
   .lang { display: inline-flex; align-items: center; gap: 5px; }
-  .lang .d { width: 8px; height: 8px; border-radius: 50%; background: #58a6ff; }
+  .lang .d { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
   .date { margin-left: auto; white-space: nowrap; }
 
   .heat-wrap { display: flex; align-items: center; gap: 10px; }
-  .heat { flex: 1; height: 6px; background: #1b2231; border-radius: 4px; overflow: hidden; }
-  .heat-bar { height: 100%; border-radius: 4px;
-    background: linear-gradient(90deg, #ff8a3d, var(--hot));
-    box-shadow: 0 0 10px rgba(255,90,54,.5); }
+  .heat { flex: 1; height: 6px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .heat-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--hot-2), var(--hot)); box-shadow: 0 0 10px var(--glow); }
   .heat-num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--hot); font-weight: 700; white-space: nowrap; }
 
   .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-  .tag { font-size: 11px; background: #1a2233; color: #9aa6ba; padding: 3px 9px; border-radius: 7px; border: 1px solid var(--line); }
+  .tag { font-size: 11px; background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--sub);
+    padding: 3px 9px; border-radius: 7px; border: 1px solid var(--line); }
 
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 7px; letter-spacing: .02em;
+  }
+  .badge.fire { background: var(--hot-soft); color: var(--hot); border: 1px solid color-mix(in srgb, var(--hot) 35%, transparent); }
+
+  /* 展开详情（点击卡片后） */
+  .detail { display: none; border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 12px; gap: 12px; flex-direction: column; }
+  .card.open .detail { display: flex; }
+  .detail .full { font-size: 13.5px; color: var(--sub); margin: 0; line-height: 1.6; }
+  .detail .acts { display: flex; gap: 9px; flex-wrap: wrap; }
+  .detail .acts a {
+    font-size: 12.5px; padding: 7px 13px; border-radius: 10px; text-decoration: none;
+    border: 1px solid var(--line-strong); color: var(--text); background: var(--surface);
+    transition: all .18s ease;
+  }
+  .detail .acts a.primary { background: linear-gradient(135deg, var(--hot), var(--hot-2)); color: #fff; border-color: transparent; }
+  .detail .acts a:hover { transform: translateY(-1px); border-color: var(--hot); }
+
+  /* 骨架屏 */
+  .skeleton .sk-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 50%, var(--surface)) 37%, var(--line) 63%); background-size: 400% 100%; animation: sk 1.4s ease infinite; }
+  @keyframes sk { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+  .skeleton { pointer-events: none; }
+  .skeleton .sk-title { height: 18px; width: 62%; margin-top: 6px; }
+
+  footer { text-align: center; color: var(--faint); font-size: 12.5px; padding: 0 20px 50px; font-family: "JetBrains Mono", monospace; }
   .empty { text-align: center; color: var(--sub); padding: 70px 20px; font-size: 15px; grid-column: 1/-1; }
-  footer { text-align: center; color: #5c6678; font-size: 12.5px; padding: 0 20px 50px; font-family: "JetBrains Mono", monospace; }
 
+  @media (max-width: 760px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 560px) {
-    header { padding-top: 44px; }
+    header.hero { padding-top: 40px; }
     .grid { grid-template-columns: 1fr; }
-    .toolbar input { min-width: 100%; }
+    .controls input { min-width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; opacity: 1; transform: none; }
+    .kicker .pulse, .skeleton .sk-line { animation: none; }
   }
 </style>
 </head>
 <body>
-<header>
-  <span class="kicker"><span class="pulse"></span>DAILY AI HOTSPOT · GITHUB</span>
-  <h1><span class="ai">AI</span> 热点榜单</h1>
-  <p class="lede" id="subtitle">每天聚合 GitHub 上最热门的 AI 项目，按领域分类、生成中文摘要，帮你一眼抓住重点。</p>
-  <div class="updated"><span class="dot"></span><span id="updated-text">最后更新：加载中…</span></div>
-</header>
+<div class="wrap">
+  <header class="hero">
+    <div class="topbar">
+      <div class="brand">
+        <span class="logo">AI</span>
+        <div>AI 热点榜单<br><small>HOTSPOT · GITHUB</small></div>
+      </div>
+      <button class="theme-toggle" id="themeToggle" title="切换深浅主题" aria-label="切换主题">◐</button>
+    </div>
+    <span class="kicker"><span class="pulse"></span>DAILY AI HOTSPOT</span>
+    <h1 class="title"><span class="ai">AI</span> 热点榜单</h1>
+    <p class="lede" id="subtitle">每天聚合 GitHub 上最热门的 AI 项目，按领域分类、生成中文摘要，帮你一眼抓住重点。</p>
+    <div class="updated"><span class="dot"></span><span id="updated-text">最后更新：加载中…</span></div>
 
-<div class="toolbar">
-  <div class="filters" id="filters"></div>
-  <div class="controls">
-    <select id="sort">
-      <option value="heat">按热度排序</option>
-      <option value="time">按最新排序</option>
-    </select>
-    <input id="search" type="text" placeholder="搜索标题 / 摘要 / 标签…" />
+    <div class="stats" id="stats">
+      <div class="stat"><div class="label">📦 收录项目</div><div class="num" data-stat="total">0</div></div>
+      <div class="stat"><div class="label">🏷️ 覆盖领域</div><div class="num" data-stat="cats">0</div></div>
+      <div class="stat"><div class="label">🔥 最热分类</div><div class="num" data-stat="topcat" style="font-size:18px">—</div></div>
+      <div class="stat"><div class="label">⭐ 总 Star 量</div><div class="num" data-stat="stars">0<span class="u">M</span></div></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="filters" id="filters"></div>
+    <div class="controls">
+      <select id="sort">
+        <option value="heat">按热度排序</option>
+        <option value="time">按最新排序</option>
+      </select>
+      <input id="search" type="text" placeholder="搜索标题 / 摘要 / 标签…" />
+      <button class="btn-ghost" id="exportBtn" title="导出当前榜单为 Markdown">⬇ 导出</button>
+    </div>
   </div>
-</div>
 
-<div class="grid" id="grid"></div>
-<footer>数据来自 GitHub 公开 API · 摘要由 AI / 缓存生成，仅供参考</footer>
+  <div class="grid" id="grid"></div>
+  <footer>数据来自 GitHub 公开 API · 摘要由 AI / 缓存生成，仅供参考</footer>
+</div>
 
 <script>
 let DATA = { items: [] };
 let state = { cat: "all", sort: "heat", q: "" };
 
-// 分类配色（深色背景友好，与 fetch.py 的 CATEGORIES 顺序一致）
 const CAT_COLOR = {
-  "大模型 / LLM": "#5b9cff",
-  "智能体 / Agent": "#c084fc",
-  "多模态 / 视觉": "#ff7eb6",
-  "检索增强 / RAG": "#2dd4bf",
-  "训练 / 微调": "#fbbf24",
-  "推理 / 部署": "#34d399",
-  "语音 / 音频": "#ff6b6b",
-  "框架 / 工具": "#94a3b8",
-  "其他": "#cbd5e1",
+  "大模型 / LLM": "#5b9cff", "智能体 / Agent": "#c084fc", "多模态 / 视觉": "#ff7eb6",
+  "检索增强 / RAG": "#2dd4bf", "训练 / 微调": "#fbbf24", "推理 / 部署": "#34d399",
+  "语音 / 音频": "#ff6b6b", "框架 / 工具": "#94a3b8", "其他": "#cbd5e1",
 };
-const DEFAULT_CATS = ["大模型 / LLM", "智能体 / Agent", "多模态 / 视觉", "检索增强 / RAG",
-                      "训练 / 微调", "推理 / 部署", "语音 / 音频", "框架 / 工具", "其他"];
+const DEFAULT_CATS = ["大模型 / LLM","智能体 / Agent","多模态 / 视觉","检索增强 / RAG","训练 / 微调","推理 / 部署","语音 / 音频","框架 / 工具","其他"];
 
-// 把 data.json 里的 UTC 时间转成北京时间，并给出相对“多久前”
-function fmtBeijing(iso) {
-  if (!iso) return "未知";
-  const d = new Date(iso + "Z"); // 视为 UTC
-  if (isNaN(d.getTime())) return iso;
-  const bj = new Date(d.getTime() + 8 * 3600 * 1000); // UTC+8
-  const p = n => String(n).padStart(2, "0");
-  const s = `${bj.getUTCFullYear()}-${p(bj.getUTCMonth() + 1)}-${p(bj.getUTCDate())} `
-          + `${p(bj.getUTCHours())}:${p(bj.getUTCMinutes())}`;
+/* ---- 主题：localStorage 持久化 ---- */
+(function initTheme(){
+  try {
+    const t = localStorage.getItem("aihot-theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch(e){}
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", cur);
+    try { localStorage.setItem("aihot-theme", cur); } catch(e){}
+  });
+})();
+
+function fmtBeijing(iso){
+  if(!iso) return "未知";
+  const d = new Date(iso + "Z");
+  if(isNaN(d.getTime())) return iso;
+  const bj = new Date(d.getTime() + 8*3600*1000);
+  const p = n => String(n).padStart(2,"0");
+  const s = `${bj.getUTCFullYear()}-${p(bj.getUTCMonth()+1)}-${p(bj.getUTCDate())} ${p(bj.getUTCHours())}:${p(bj.getUTCMinutes())}`;
   const diff = Date.now() - bj.getTime();
-  let rel;
-  if (diff >= 0) {
-    const h = Math.floor(diff / 3600000);
-    rel = h < 1 ? "刚刚" : h < 24 ? `${h} 小时前` : `${Math.floor(h / 24)} 天前`;
-  } else {
-    rel = "即将更新";
-  }
+  let rel = diff>=0 ? (diff<3600000 ? "刚刚" : diff<86400000 ? `${Math.floor(diff/3600000)} 小时前` : `${Math.floor(diff/86400000)} 天前`) : "即将更新";
   return `${s}（北京时间）· ${rel}`;
 }
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtStars(n){
+  if(n==null) return "";
+  if(n>=1000) return (n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,"") + "k";
+  return String(n);
 }
 
-async function load() {
+/* ---- 数字跳动 ---- */
+function countUp(el, target, suffix=""){
+  const dur = 900; const start = performance.now();
+  const from = 0;
+  function step(now){
+    const t = Math.min(1, (now-start)/dur);
+    const e = 1 - Math.pow(1-t, 3);
+    const v = Math.round(from + (target-from)*e);
+    el.firstChild ? el.childNodes[0].nodeValue = v.toLocaleString() : el.textContent = v.toLocaleString();
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function load(){
+  renderSkeletons(12);
   try {
     const res = await fetch("./data.json", { cache: "no-store" });
     DATA = await res.json();
-  } catch (e) {
-    document.getElementById("grid").innerHTML =
-      '<div class="empty">未能加载 data.json，请先运行聚合脚本生成数据。</div>';
+  } catch(e){
+    document.getElementById("grid").innerHTML = '<div class="empty">未能加载 data.json，请先运行聚合脚本生成数据。</div>';
     return;
   }
-  document.getElementById("subtitle").textContent =
-    `每天聚合 GitHub 热门 AI 项目 · 当前共 ${DATA.count || 0} 条，按领域分类`;
+  document.getElementById("subtitle").textContent = `每天聚合 GitHub 热门 AI 项目 · 当前共 ${DATA.count||0} 条，按领域分类`;
   document.getElementById("updated-text").textContent = "最后更新：" + fmtBeijing(DATA.generated_at || "");
+  buildStats();
   buildFilters();
   render();
 }
 
-function buildFilters() {
+function buildStats(){
+  const items = DATA.items || [];
+  const cats = new Set(items.map(i=>i.category));
+  const stars = items.reduce((s,i)=> s + ((i.extra&&i.extra.stars)||0), 0);
+  // 最热分类：按项目数 + 平均热度
+  const tally = {};
+  items.forEach(i=>{ tally[i.category]=(tally[i.category]||0)+1; });
+  let topcat="—", max=-1;
+  Object.entries(tally).forEach(([c,n])=>{ if(n>max){max=n; topcat=c;} });
+
+  countUp(document.querySelector('[data-stat="total"]'), items.length);
+  countUp(document.querySelector('[data-stat="cats"]'), cats.size);
+  const starsEl = document.querySelector('[data-stat="stars"]');
+  countUp(starsEl, Math.round(stars/1e6*10)/10);
+  starsEl.innerHTML = starsEl.textContent + '<span class="u">M</span>';
+  document.querySelector('[data-stat="topcat"]').textContent = topcat;
+}
+
+function buildFilters(){
   const cats = DATA.categories || DEFAULT_CATS;
-  const present = new Set(DATA.items.map(i => i.category));
-  const order = cats.filter(c => present.has(c));
-  const box = document.getElementById("filters");
-  box.innerHTML = "";
-  const mk = (label, val, active) => {
-    const b = document.createElement("button");
-    b.textContent = label;
-    b.dataset.cat = val;
-    if (active) b.classList.add("active");
-    box.appendChild(b);
-  };
-  mk("全部", "all", state.cat === "all");
-  order.forEach(c => mk(c, c, state.cat === c));
+  const present = new Set(DATA.items.map(i=>i.category));
+  const order = cats.filter(c=>present.has(c));
+  const box = document.getElementById("filters"); box.innerHTML="";
+  const mk=(label,val,active)=>{ const b=document.createElement("button"); b.textContent=label; b.dataset.cat=val; if(active)b.classList.add("active"); box.appendChild(b); };
+  mk("全部","all",state.cat==="all");
+  order.forEach(c=>mk(c,c,state.cat===c));
 }
 
-function heatColor(score) {
-  // 热度越高越偏橙红，越低越偏灰蓝
-  return score >= 0.85 ? "#ff5a36" : score >= 0.6 ? "#ff8a3d" : "#ffb066";
-}
-
-function render() {
-  let items = DATA.items.filter(it => state.cat === "all" || it.category === state.cat);
-  if (state.q) {
-    const q = state.q.toLowerCase();
-    items = items.filter(it =>
-      (it.title + " " + (it.category || "") + " " + (it.summary || "") + " " + (it.description || ""))
-        .toLowerCase().includes(q));
+function renderSkeletons(n){
+  const grid=document.getElementById("grid");
+  grid.innerHTML="";
+  for(let i=0;i<n;i++){
+    const d=document.createElement("div"); d.className="card skeleton";
+    d.innerHTML=`<div class="card-top"><div class="sk-line" style="width:40%"></div><div class="sk-line" style="width:18%"></div></div>
+      <div class="sk-line sk-title"></div><div class="sk-line" style="width:92%"></div><div class="sk-line" style="width:84%"></div>
+      <div class="sk-line" style="width:60%; margin-top:6px"></div>`;
+    grid.appendChild(d);
   }
-  if (state.sort === "heat") items.sort((a, b) => b.heat_score - a.heat_score);
-  else items.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+}
 
-  const grid = document.getElementById("grid");
-  if (!items.length) { grid.innerHTML = '<div class="empty">没有匹配的内容。</div>'; return; }
+function render(){
+  let items = DATA.items.filter(it => state.cat==="all" || it.category===state.cat);
+  if(state.q){
+    const q=state.q.toLowerCase();
+    items=items.filter(it=>(it.title+" "+(it.category||"")+" "+(it.summary||"")+" "+(it.description||"")).toLowerCase().includes(q));
+  }
+  if(state.sort==="heat") items.sort((a,b)=>b.heat_score-a.heat_score);
+  else items.sort((a,b)=>(b.published||"").localeCompare(a.published||""));
 
-  grid.innerHTML = items.map((it, i) => {
-    const w = Math.min(100, Math.round(it.heat_score * 100));
-    const color = CAT_COLOR[it.category] || "#cbd5e1";
-    const summary = it.summary ? `<p class="summary">${esc(it.summary)}</p>`
-                               : `<p class="desc">${esc(it.description || "")}</p>`;
-    const stars = (it.extra && it.extra.stars != null) ? `★ ${it.extra.stars.toLocaleString()}` : "";
-    const lang = (it.extra && it.extra.language) ? `<span class="lang"><span class="d"></span>${esc(it.extra.language)}</span>` : "";
-    const topics = (it.extra && it.extra.topics) ? it.extra.topics.slice(0, 2)
-      .map(t => `<span class="tag">${esc(t)}</span>`).join("") : "";
-    return `<article class="card" style="animation-delay:${Math.min(i * 45, 600)}ms">
+  const grid=document.getElementById("grid");
+  if(!items.length){ grid.innerHTML='<div class="empty">没有匹配的内容。</div>'; return; }
+
+  grid.innerHTML = items.map((it,i)=>{
+    const w=Math.min(100,Math.round(it.heat_score*100));
+    const color=CAT_COLOR[it.category]||"#cbd5e1";
+    const summary = it.summary ? `<p class="summary">${esc(it.summary)}</p>` : `<p class="desc">${esc(it.description||"")}</p>`;
+    const stars=(it.extra&&it.extra.stars!=null)?`★ ${fmtStars(it.extra.stars)}`:"";
+    const lang=(it.extra&&it.extra.language)?`<span class="lang"><span class="d"></span>${esc(it.extra.language)}</span>`:"";
+    const topics=(it.extra&&it.extra.topics)?it.extra.topics.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join(""):"";
+    const badge = it.rank<=3 ? `<span class="badge fire">🔥 飙升</span>` : (it.rank===1?`<span class="badge fire">🥇 榜首</span>`:"");
+    const fullDesc = (it.description||"").trim() ? `<p class="full">${esc(it.description)}</p>` : "";
+    return `<article class="card" data-rank="${it.rank}" style="--swatch:${color}">
       <div class="card-top">
-        <span class="cat"><span class="swatch" style="background:${color}"></span>${esc(it.category)}</span>
-        <span class="rank" style="color:${heatColor(it.heat_score)}">#${it.rank}</span>
+        <span class="cat"><span class="swatch"></span>${esc(it.category)}</span>
+        <span class="rank">#${it.rank}</span>
       </div>
+      ${badge?`<div>${badge}</div>`:""}
       <h3><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
       ${summary}
       <div class="meta">
         <span class="stars">${stars}</span>
         ${lang}
-        <span class="date">${it.published || ""}</span>
+        <span class="date">${it.published||""}</span>
       </div>
       <div class="heat-wrap">
         <div class="heat"><div class="heat-bar" style="width:${w}%"></div></div>
         <span class="heat-num">热度 ${it.heat_score.toFixed(2)}</span>
       </div>
       <div class="tags">${topics}</div>
+      <div class="detail">
+        ${fullDesc}
+        <div class="acts">
+          <a class="primary" href="${esc(it.url)}" target="_blank" rel="noopener">在 GitHub 查看</a>
+          <a href="#" class="copy-link" data-url="${esc(it.url)}">复制链接</a>
+        </div>
+      </div>
     </article>`;
   }).join("");
+
+  // 点击卡片展开详情（点链接/复制不触发）
+  grid.querySelectorAll(".card").forEach(card=>{
+    card.addEventListener("click", e=>{
+      if(e.target.closest("a")) return;
+      if(e.target.classList.contains("copy-link")){
+        e.preventDefault(); e.stopPropagation();
+        const u=e.target.dataset.url;
+        navigator.clipboard?.writeText(u).then(()=>{ const o=e.target.textContent; e.target.textContent="已复制 ✓"; setTimeout(()=>e.target.textContent=o,1200); });
+        return;
+      }
+      card.classList.toggle("open");
+    });
+  });
+
+  // 滚动渐现
+  const io=new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
+  },{threshold:.12});
+  grid.querySelectorAll(".card").forEach((c,i)=>{ c.style.transitionDelay=(Math.min(i,8)*30)+"ms"; io.observe(c); });
 }
 
-document.getElementById("filters").addEventListener("click", e => {
-  if (e.target.tagName !== "BUTTON") return;
-  document.querySelectorAll("#filters button").forEach(b => b.classList.remove("active"));
-  e.target.classList.add("active");
-  state.cat = e.target.dataset.cat;
-  render();
+/* 导出 Markdown 榜单 */
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const items=DATA.items.filter(it=>state.cat==="all"||it.category===state.cat);
+  const lines=[`# AI 热点榜单（${fmtBeijing(DATA.generated_at||"").split("（")[0].trim()}）`,""];
+  items.slice(0,30).forEach((it,i)=>{
+    const s=it.extra&&it.extra.stars!=null?` ★${fmtStars(it.extra.stars)}`:"";
+    lines.push(`${i+1}. **[${it.title}](${it.url})** · ${it.category}${s}`);
+    if(it.summary) lines.push(`   - ${it.summary}`);
+  });
+  const blob=new Blob([lines.join("\n")],{type:"text/markdown"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ai-hotspot.md"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
-document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
-document.getElementById("search").addEventListener("input", e => { state.q = e.target.value; render(); });
+
+document.getElementById("filters").addEventListener("click", e=>{
+  if(e.target.tagName!=="BUTTON") return;
+  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active"); state.cat=e.target.dataset.cat; render();
+});
+document.getElementById("sort").addEventListener("change", e=>{ state.sort=e.target.value; render(); });
+document.getElementById("search").addEventListener("input", e=>{ state.q=e.target.value; render(); });
 
 load();
 </script>
