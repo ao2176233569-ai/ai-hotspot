@@ -60,7 +60,7 @@
    },
    "AUTOMATIC1111/stable-diffusion-webui": {
     "f": 30553,
-    "s": 164500
+    "s": 164499
    },
    "AbdBarho/stable-diffusion-webui-docker": {
     "f": 1253,
@@ -72,7 +72,7 @@
    },
    "AccumulateMore/CV": {
     "f": 2617,
-    "s": 23309
+    "s": 23310
    },
    "Acly/krita-ai-diffusion": {
     "f": 613,
@@ -84,7 +84,7 @@
    },
    "AlexsJones/llmfit": {
     "f": 1961,
-    "s": 31687
+    "s": 31692
    },
    "Alibaba-NLP/DeepResearch": {
     "f": 1507,
@@ -128,7 +128,7 @@
    },
    "BerriAI/litellm": {
     "f": 10607,
-    "s": 56407
+    "s": 56408
    },
    "BloopAI/vibe-kanban": {
     "f": 2965,
@@ -180,7 +180,7 @@
    },
    "ComposioHQ/awesome-claude-skills": {
     "f": 8270,
-    "s": 72538
+    "s": 72539
    },
    "ComposioHQ/composio": {
     "f": 4703,
@@ -224,7 +224,7 @@
    },
    "DietrichGebert/ponytail": {
     "f": 5680,
-    "s": 103168
+    "s": 103173
    },
    "Donchitos/Claude-Code-Game-Studios": {
     "f": 3415,
@@ -232,7 +232,7 @@
    },
    "EKKOLearnAI/hermes-studio": {
     "f": 1250,
-    "s": 10272
+    "s": 10273
    },
    "EdVince/Stable-Diffusion-NCNN": {
     "f": 103,
@@ -280,7 +280,7 @@
    },
    "Fincept-Corporation/FinceptTerminal": {
     "f": 4273,
-    "s": 30255
+    "s": 30256
    },
    "FireRedTeam/FireRedTTS": {
     "f": 84,
@@ -335,12 +335,12 @@
     "s": 6534
    },
    "GoogleCloudPlatform/generative-ai": {
-    "f": 4409,
+    "f": 4410,
     "s": 17590
    },
    "Graphify-Labs/graphify": {
     "f": 10368,
-    "s": 106583
+    "s": 106584
    },
    "GreyDGL/PentestGPT": {
     "f": 2597,
@@ -352,7 +352,7 @@
    },
    "HKUDS/DeepTutor": {
     "f": 4524,
-    "s": 35750
+    "s": 35751
    },
    "HKUDS/LightRAG": {
     "f": 5471,
@@ -360,7 +360,7 @@
    },
    "HKUDS/Vibe-Trading": {
     "f": 5013,
-    "s": 30901
+    "s": 30902
    },
    "HKUDS/VideoRAG": {
     "f": 467,
@@ -428,7 +428,7 @@
    },
    "ItzCrazyKns/Vane": {
     "f": 4004,
-    "s": 36175
+    "s": 36176
    },
    "JCodesMore/ai-website-cloner-template": {
     "f": 4663,
@@ -464,7 +464,7 @@
    },
    "KKKKhazix/khazix-skills": {
     "f": 2144,
-    "s": 19703
+    "s": 19704
    },
    "KalyanKS-NLP/llm-engineer-toolkit": {
     "f": 1682,
@@ -480,7 +480,7 @@
    },
    "LAION-AI/Open-Assistant": {
     "f": 3282,
-    "s": 37406
+    "s": 37407
    },
    "LLMBook-zh/LLMBook-zh.github.io": {
     "f": 346,
@@ -499,8 +499,8 @@
     "s": 2585
    },
    "Leonxlnx/taste-skill": {
-    "f": 5251,
-    "s": 76778
+    "f": 5252,
+    "s": 76779
    },
    "Lightning-AI/litgpt": {
     "f": 1487,
@@ -520,7 +520,7 @@
    },
    "LykosAI/StabilityMatrix": {
     "f": 588,
-    "s": 8637
+    "s": 8638
    },
    "MITDeepLearning/introtodeeplearning": {
     "f": 4560,
@@ -548,7 +548,7 @@
    },
    "MadsLorentzen/ai-job-search": {
     "f": 11050,
-    "s": 31791
+    "s": 31792
    },
    "Maks-s/sd-akashic": {
     "f": 78,
@@ -563,8 +563,8 @@
     "s": 10727
    },
    "MemoriLabs/Memori": {
-    "f": 3188,
-    "s": 16116
+    "f": 3190,
+    "s": 16119
    },
    "Mikoto10032/DeepLearning": {
     "f": 3874,
@@ -704,7 +704,7 @@
    },
    "OpenHands/OpenHands": {
     "f": 10913,
-    "s": 84118
+    "s": 84120
    },
    "OpenMOSS/MOSS": {
     "f": 1128,
@@ -752,7 +752,7 @@
    },
    "PaddlePaddle/PaddleOCR": {
     "f": 11175,
-    "s": 87688
+    "s": 87689
    },
    "PaddlePaddle/models": {
     "f": 2856,
@@ -792,7 +792,7 @@
    },
    "QwenLM/qwen-code": {
     "f": 2863,
-    "s": 27036
+    "s": 27038
    },
    "RUC-NLPIR/FlashRAG": {
     "f": 311,
@@ -872,7 +872,7 @@
    },
    "Snailclimb/JavaGuide": {
     "f": 46170,
-    "s": 157774
+    "s": 157773
    },
    "Stability-AI/StableStudio": {
     "f": 916,
@@ -944,7 +944,7 @@
    },
    "TencentCloud/TencentDB-Agent-Memory": {
     "f": 2006,
-    "s": 21896
+    "s": 21900
    },
    "The-Pocket/PocketFlow": {
     "f": 1209,
@@ -1120,11 +1120,11 @@
    },
    "advimman/lama": {
     "f": 1079,
-    "s": 10191
+    "s": 10192
    },
    "affaan-m/ECC": {
-    "f": 36459,
-    "s": 240245
+    "f": 36460,
+    "s": 240246
    },
    "afiaka87/clip-guided-diffusion": {
     "f": 60,
@@ -1360,7 +1360,7 @@
    },
    "babysor/MockingBird": {
     "f": 5189,
-    "s": 36909
+    "s": 36908
    },
    "bahjat-kawar/ddrm": {
     "f": 69,
@@ -1404,7 +1404,7 @@
    },
    "binary-husky/gpt_academic": {
     "f": 8330,
-    "s": 71194
+    "s": 71195
    },
    "binhnguyennus/awesome-scalability": {
     "f": 7096,
@@ -1412,7 +1412,7 @@
    },
    "bojieli/ai-agent-book": {
     "f": 4128,
-    "s": 37567
+    "s": 37571
    },
    "botpress/botpress": {
     "f": 2294,
@@ -1580,7 +1580,7 @@
    },
    "crewAIInc/crewAI": {
     "f": 8151,
-    "s": 57104
+    "s": 57105
    },
    "csslc/CCSR": {
     "f": 43,
@@ -1600,7 +1600,7 @@
    },
    "d2l-ai/d2l-zh": {
     "f": 12325,
-    "s": 79728
+    "s": 79727
    },
    "dagster-io/dagster": {
     "f": 2241,
@@ -1615,7 +1615,7 @@
     "s": 17360
    },
    "dair-ai/Prompt-Engineering-Guide": {
-    "f": 8513,
+    "f": 8514,
     "s": 77489
    },
    "dair-ai/ml-visuals": {
@@ -1656,7 +1656,7 @@
    },
    "datawhalechina/hello-agents": {
     "f": 9105,
-    "s": 73082
+    "s": 73083
    },
    "datawhalechina/leedl-tutorial": {
     "f": 3095,
@@ -1668,7 +1668,7 @@
    },
    "datawhalechina/pumpkin-book": {
     "f": 4796,
-    "s": 25992
+    "s": 25993
    },
    "datawhalechina/self-llm": {
     "f": 3082,
@@ -1723,8 +1723,8 @@
     "s": 57457
    },
    "deepseek-ai/deepseek-harness": {
-    "f": 10899,
-    "s": 112435
+    "f": 10914,
+    "s": 112544
    },
    "deepset-ai/haystack": {
     "f": 3013,
@@ -1747,8 +1747,8 @@
     "s": 3233
    },
    "diegosouzapw/OmniRoute": {
-    "f": 6592,
-    "s": 48443
+    "f": 6593,
+    "s": 48448
    },
    "diff-usion/Awesome-Diffusion-Models": {
     "f": 1010,
@@ -1812,7 +1812,7 @@
    },
    "e2b-dev/awesome-ai-agents": {
     "f": 3319,
-    "s": 29429
+    "s": 29430
    },
    "earthtojake/text-to-cad": {
     "f": 1423,
@@ -1872,7 +1872,7 @@
    },
    "evidentlyai/evidently": {
     "f": 898,
-    "s": 7810
+    "s": 7811
    },
    "exadel-inc/CompreFace": {
     "f": 1160,
@@ -1931,8 +1931,8 @@
     "s": 3521
    },
    "firecrawl/firecrawl": {
-    "f": 9391,
-    "s": 167694
+    "f": 9392,
+    "s": 167699
    },
    "fishaudio/fish-diffusion": {
     "f": 105,
@@ -1976,7 +1976,7 @@
    },
    "gitleaks/gitleaks": {
     "f": 2190,
-    "s": 28736
+    "s": 28737
    },
    "google-ai-edge/mediapipe": {
     "f": 6119,
@@ -2028,7 +2028,7 @@
    },
    "harry0703/MoneyPrinterTurbo": {
     "f": 15740,
-    "s": 103834
+    "s": 103838
    },
    "harvard-edge/cs249r_book": {
     "f": 3522,
@@ -2036,19 +2036,19 @@
    },
    "headroomlabs-ai/headroom": {
     "f": 5095,
-    "s": 66424
+    "s": 66425
    },
    "hemansnation/AI-Engineer-Headquarters": {
     "f": 699,
     "s": 3673
    },
    "herdrdev/herdr": {
-    "f": 2079,
-    "s": 29410
+    "f": 2080,
+    "s": 29412
    },
    "hesreallyhim/awesome-claude-code": {
     "f": 4580,
-    "s": 52351
+    "s": 52354
    },
    "higgsfield-ai/higgsfield": {
     "f": 699,
@@ -2060,7 +2060,7 @@
    },
    "hiyouga/LlamaFactory": {
     "f": 9069,
-    "s": 74124
+    "s": 74125
    },
    "horovod/horovod": {
     "f": 2235,
@@ -2095,7 +2095,7 @@
     "s": 12533
    },
    "huggingface/transformers": {
-    "f": 34249,
+    "f": 34250,
     "s": 164110
    },
    "huginn/huginn": {
@@ -2108,7 +2108,7 @@
    },
    "hummingbot/hummingbot": {
     "f": 4831,
-    "s": 19467
+    "s": 19468
    },
    "hybridgroup/gocv": {
     "f": 904,
@@ -2136,7 +2136,7 @@
    },
    "infiniflow/ragflow": {
     "f": 10390,
-    "s": 88540
+    "s": 88541
    },
    "instill-ai/instill-core": {
     "f": 125,
@@ -2204,7 +2204,7 @@
    },
    "jnMetaCode/agency-agents-zh": {
     "f": 3178,
-    "s": 19476
+    "s": 19477
    },
    "junyanz/CycleGAN": {
     "f": 1955,
@@ -2220,7 +2220,7 @@
    },
    "k4yt3x/video2x": {
     "f": 1814,
-    "s": 20929
+    "s": 20930
    },
    "kailashahirwar/cheatsheets-ai": {
     "f": 3373,
@@ -2271,8 +2271,8 @@
     "s": 12931
    },
    "koala73/worldmonitor": {
-    "f": 12256,
-    "s": 82075
+    "f": 12257,
+    "s": 82079
    },
    "koishijs/novelai-bot": {
     "f": 205,
@@ -2328,11 +2328,11 @@
    },
    "langchain-ai/langchain": {
     "f": 24020,
-    "s": 144263
+    "s": 144264
    },
    "langchain-ai/langgraph": {
-    "f": 6674,
-    "s": 39734
+    "f": 6675,
+    "s": 39735
    },
    "langchain-ai/open-swe": {
     "f": 1226,
@@ -2340,7 +2340,7 @@
    },
    "langflow-ai/langflow": {
     "f": 9860,
-    "s": 153263
+    "s": 153264
    },
    "langfuse/langfuse": {
     "f": 3569,
@@ -2348,7 +2348,7 @@
    },
    "langgenius/dify": {
     "f": 24079,
-    "s": 152516
+    "s": 152517
    },
    "lavague-ai/LaVague": {
     "f": 573,
@@ -2372,15 +2372,15 @@
    },
    "linshenkx/prompt-optimizer": {
     "f": 3891,
-    "s": 33135
+    "s": 33136
    },
    "liuruoze/EasyPR": {
     "f": 2466,
     "s": 6429
    },
    "liyupi/ai-guide": {
-    "f": 2103,
-    "s": 18485
+    "f": 2104,
+    "s": 18486
    },
    "lkwq007/stablediffusion-infinity": {
     "f": 294,
@@ -2508,7 +2508,7 @@
    },
    "microsoft/ai-agents-for-beginners": {
     "f": 23924,
-    "s": 72232
+    "s": 72233
    },
    "microsoft/ailab": {
     "f": 1390,
@@ -2524,7 +2524,7 @@
    },
    "microsoft/graphrag": {
     "f": 3734,
-    "s": 35513
+    "s": 35514
    },
    "microsoft/nni": {
     "f": 1854,
@@ -2568,7 +2568,7 @@
    },
    "mli/paper-reading": {
     "f": 2809,
-    "s": 33690
+    "s": 33689
    },
    "mlrun/mlrun": {
     "f": 314,
@@ -2632,7 +2632,7 @@
    },
    "nautechsystems/nautilus_trader": {
     "f": 3339,
-    "s": 25520
+    "s": 25521
    },
    "naver-ai/StyleKeeper": {
     "f": 33,
@@ -2648,11 +2648,11 @@
    },
    "nesquena/hermes-webui": {
     "f": 2385,
-    "s": 17360
+    "s": 17361
    },
    "netdata/netdata": {
     "f": 6577,
-    "s": 80192
+    "s": 80193
    },
    "neuml/txtai": {
     "f": 873,
@@ -2660,7 +2660,7 @@
    },
    "nexu-io/open-design": {
     "f": 10107,
-    "s": 86833
+    "s": 86837
    },
    "nltk/nltk": {
     "f": 3028,
@@ -2680,7 +2680,7 @@
    },
    "nukeop/nuclear": {
     "f": 1318,
-    "s": 18281
+    "s": 18282
    },
    "nunchaku-ai/ComfyUI-nunchaku": {
     "f": 170,
@@ -2695,7 +2695,7 @@
     "s": 2240
    },
    "ollama/ollama": {
-    "f": 17416,
+    "f": 17417,
     "s": 178584
    },
    "omerbt/TokenFlow": {
@@ -2984,7 +2984,7 @@
    },
    "reworkd/AgentGPT": {
     "f": 9287,
-    "s": 36309
+    "s": 36308
    },
    "rgthree/rgthree-comfy": {
     "f": 253,
@@ -3020,7 +3020,7 @@
    },
    "rtk-ai/rtk": {
     "f": 4793,
-    "s": 76215
+    "s": 76216
    },
    "run-llama/llama_index": {
     "f": 7939,
@@ -3040,7 +3040,7 @@
    },
    "ruvnet/ruflo": {
     "f": 8132,
-    "s": 67911
+    "s": 67913
    },
    "s0md3v/roop": {
     "f": 616,
@@ -3056,7 +3056,7 @@
    },
    "sansan0/TrendRadar": {
     "f": 24868,
-    "s": 61481
+    "s": 61482
    },
    "sapientinc/HRM": {
     "f": 1826,
@@ -3088,7 +3088,7 @@
    },
    "shanraisshan/claude-code-best-practice": {
     "f": 6411,
-    "s": 64497
+    "s": 64498
    },
    "shap/shap": {
     "f": 3741,
@@ -3104,7 +3104,7 @@
    },
    "sickn33/agentic-awesome-skills": {
     "f": 6578,
-    "s": 44984
+    "s": 44985
    },
    "sigoden/aichat": {
     "f": 729,
@@ -3120,7 +3120,7 @@
    },
    "simstudioai/sim": {
     "f": 3775,
-    "s": 29423
+    "s": 29424
    },
    "simular-ai/Agent-S": {
     "f": 1419,
@@ -3148,7 +3148,7 @@
    },
    "stablyai/orca": {
     "f": 3214,
-    "s": 45995
+    "s": 45997
    },
    "stanford-oval/storm": {
     "f": 2902,
@@ -3292,11 +3292,11 @@
    },
    "toon-format/toon": {
     "f": 1114,
-    "s": 25159
+    "s": 25160
    },
    "topoteretes/cognee": {
     "f": 2924,
-    "s": 30042
+    "s": 30043
    },
    "tracel-ai/burn": {
     "f": 1015,
@@ -3356,7 +3356,7 @@
    },
    "unslothai/unsloth": {
     "f": 6479,
-    "s": 71866
+    "s": 71871
    },
    "upstash/context7": {
     "f": 2929,
@@ -3487,8 +3487,8 @@
     "s": 9101
    },
    "xerrors/Yuxi": {
-    "f": 960,
-    "s": 6474
+    "f": 961,
+    "s": 6475
    },
    "ximinng/PyTorch-SVGRender": {
     "f": 51,
