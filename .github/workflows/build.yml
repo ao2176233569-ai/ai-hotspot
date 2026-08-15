@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write      # 需要写回 stars_history.json（star 增量历史）
   pages: write
   id-token: write
 
@@ -19,6 +19,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # 供 fetch_github 调用 GitHub API 认证 + 写回 star 历史
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      UPLOAD_HISTORY: "1"
+      # 大模型摘要（未配置则走缓存 + 离线中文兜底，仍全中文）
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      FALLBACK_API_KEY: ${{ secrets.FALLBACK_API_KEY }}
+      FALLBACK_BASE_URL: ${{ secrets.FALLBACK_BASE_URL }}
+      FALLBACK_MODEL: ${{ secrets.FALLBACK_MODEL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,15 +41,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
+      - name: Download star history
+        continue-on-error: true
+        run: |
+          gh api repos/${{ github.repository }}/contents/stars_history.json --jq '.content' | base64 -d > stars_history.json || echo "no star history yet"
+
       - name: Aggregate & summarize
         run: python scripts/fetch.py
-        env:
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          FALLBACK_API_KEY: ${{ secrets.FALLBACK_API_KEY }}
-          FALLBACK_BASE_URL: ${{ secrets.FALLBACK_BASE_URL }}
-          FALLBACK_MODEL: ${{ secrets.FALLBACK_MODEL }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
