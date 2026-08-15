@@ -159,10 +159,31 @@
   }
   .stat .num .u { font-size: 14px; color: var(--faint); margin-left: 3px; }
 
+  /* ============ 时间段 Tab（可横向滑动） ============ */
+  .rangetabs {
+    display: flex; gap: 10px; margin: 30px 0 0; overflow-x: auto;
+    padding-bottom: 4px; scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+  }
+  .rangetabs::-webkit-scrollbar { height: 6px; }
+  .rangetabs::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .rangetabs button {
+    flex: 0 0 auto; border: 1px solid var(--line); background: var(--card);
+    color: var(--sub); padding: 11px 22px; border-radius: 13px; cursor: pointer;
+    font-size: 15px; font-weight: 600; font-family: inherit; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px; transition: all .2s ease;
+  }
+  .rangetabs button .ic { font-size: 16px; }
+  .rangetabs button:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-1px); }
+  .rangetabs button.active {
+    background: linear-gradient(135deg, var(--hot), var(--hot-2)); color: #fff;
+    border-color: transparent; box-shadow: 0 8px 22px var(--glow);
+  }
+  .rangetabs button.active .ic { filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+
   /* ============ 工具栏 ============ */
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
-    position: sticky; top: 0; z-index: 30; margin: 26px 0 0;
+    position: sticky; top: 0; z-index: 30; margin: 18px 0 0;
     padding: 14px 0; background: linear-gradient(180deg, var(--bg) 64%, transparent);
     backdrop-filter: blur(8px);
   }
@@ -312,14 +333,21 @@
       <div class="stat"><div class="label">🔥 最热分类</div><div class="num" data-stat="topcat" style="font-size:18px">—</div></div>
       <div class="stat"><div class="label">⭐ 总 Star 量</div><div class="num" data-stat="stars">0<span class="u">M</span></div></div>
     </div>
+
+    <div class="rangetabs" id="rangetabs">
+      <button data-range="day" class="active"><span class="ic">🔥</span>当天最火</button>
+      <button data-range="month"><span class="ic">📅</span>当月最火</button>
+      <button data-range="year"><span class="ic">🏆</span>当年最火</button>
+    </div>
   </header>
 
   <div class="toolbar">
     <div class="filters" id="filters"></div>
     <div class="controls">
       <select id="sort">
-        <option value="heat">按热度排序</option>
-        <option value="time">按最新排序</option>
+        <option value="trend">按榜单（增量排序）</option>
+        <option value="stars">按 Star 总量</option>
+        <option value="time">按最新更新</option>
       </select>
       <input id="search" type="text" placeholder="搜索标题 / 摘要 / 标签…" />
       <button class="btn-ghost" id="exportBtn" title="导出当前榜单为 Markdown">⬇ 导出</button>
@@ -331,8 +359,11 @@
 </div>
 
 <script>
-let DATA = { items: [] };
-let state = { cat: "all", sort: "heat", q: "" };
+let DATA = { ranges: { day: [], month: [], year: [] }, categories: [], generated_at: "" };
+let state = { range: "day", cat: "all", sort: "trend", q: "" };
+
+function currentItems(){ return DATA.ranges[state.range] || []; }
+const RANGE_LABEL = { day: "当天", month: "当月", year: "当年" };
 
 const CAT_COLOR = {
   "大模型 / LLM": "#5b9cff", "智能体 / Agent": "#c084fc", "多模态 / 视觉": "#ff7eb6",
@@ -395,18 +426,19 @@ async function load(){
     document.getElementById("grid").innerHTML = '<div class="empty">未能加载 data.json，请先运行聚合脚本生成数据。</div>';
     return;
   }
-  document.getElementById("subtitle").textContent = `每天聚合 GitHub 热门 AI 项目 · 当前共 ${DATA.count||0} 条，按领域分类`;
+  if(!DATA.ranges) DATA.ranges = { day: [], month: [], year: [] };
+  document.getElementById("subtitle").textContent = `按 star 增量聚合 GitHub 热门 AI 项目 · 切换上方标签看当天 / 当月 / 当年榜单`;
   document.getElementById("updated-text").textContent = "最后更新：" + fmtBeijing(DATA.generated_at || "");
+  syncRangeUI();
   buildStats();
   buildFilters();
   render();
 }
 
 function buildStats(){
-  const items = DATA.items || [];
+  const items = currentItems();
   const cats = new Set(items.map(i=>i.category));
   const stars = items.reduce((s,i)=> s + ((i.extra&&i.extra.stars)||0), 0);
-  // 最热分类：按项目数 + 平均热度
   const tally = {};
   items.forEach(i=>{ tally[i.category]=(tally[i.category]||0)+1; });
   let topcat="—", max=-1;
@@ -422,12 +454,18 @@ function buildStats(){
 
 function buildFilters(){
   const cats = DATA.categories || DEFAULT_CATS;
-  const present = new Set(DATA.items.map(i=>i.category));
+  const present = new Set(currentItems().map(i=>i.category));
   const order = cats.filter(c=>present.has(c));
   const box = document.getElementById("filters"); box.innerHTML="";
   const mk=(label,val,active)=>{ const b=document.createElement("button"); b.textContent=label; b.dataset.cat=val; if(active)b.classList.add("active"); box.appendChild(b); };
   mk("全部","all",state.cat==="all");
   order.forEach(c=>mk(c,c,state.cat===c));
+}
+
+function syncRangeUI(){
+  document.querySelectorAll("#rangetabs button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.range === state.range);
+  });
 }
 
 function renderSkeletons(n){
@@ -443,13 +481,14 @@ function renderSkeletons(n){
 }
 
 function render(){
-  let items = DATA.items.filter(it => state.cat==="all" || it.category===state.cat);
+  let items = currentItems().filter(it => state.cat==="all" || it.category===state.cat);
   if(state.q){
     const q=state.q.toLowerCase();
     items=items.filter(it=>(it.title+" "+(it.category||"")+" "+(it.summary||"")+" "+(it.description||"")).toLowerCase().includes(q));
   }
-  if(state.sort==="heat") items.sort((a,b)=>b.heat_score-a.heat_score);
-  else items.sort((a,b)=>(b.published||"").localeCompare(a.published||""));
+  if(state.sort==="stars") items.sort((a,b)=>b.heat_score-a.heat_score);
+  else if(state.sort==="time") items.sort((a,b)=>(b.published||"").localeCompare(a.published||""));
+  // "trend"（默认）：保持榜单内原有顺序，即已按对应时间窗的 star 增量降序
 
   const grid=document.getElementById("grid");
   if(!items.length){ grid.innerHTML='<div class="empty">没有匹配的内容。</div>'; return; }
@@ -461,7 +500,12 @@ function render(){
     const stars=(it.extra&&it.extra.stars!=null)?`★ ${fmtStars(it.extra.stars)}`:"";
     const lang=(it.extra&&it.extra.language)?`<span class="lang"><span class="d"></span>${esc(it.extra.language)}</span>`:"";
     const topics=(it.extra&&it.extra.topics)?it.extra.topics.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join(""):"";
-    const badge = it.rank<=3 ? `<span class="badge fire">🔥 飙升</span>` : (it.rank===1?`<span class="badge fire">🥇 榜首</span>`:"");
+    const delta = state.range==="day" ? it.day_delta : state.range==="month" ? it.month_delta : it.year_delta;
+    const dlbl = RANGE_LABEL[state.range];
+    let badge = "";
+    if(delta!=null) badge = `<span class="badge fire">${dlbl} +${fmtStars(delta)}⭐</span>`;
+    else if(it.rank===1) badge = `<span class="badge fire">🥇 榜首</span>`;
+    else if(it.rank<=3) badge = `<span class="badge fire">🔥 飙升</span>`;
     const fullDesc = (it.description||"").trim() ? `<p class="full">${esc(it.description)}</p>` : "";
     return `<article class="card" data-rank="${it.rank}" style="--swatch:${color}">
       <div class="card-top">
@@ -514,8 +558,8 @@ function render(){
 
 /* 导出 Markdown 榜单 */
 document.getElementById("exportBtn").addEventListener("click", ()=>{
-  const items=DATA.items.filter(it=>state.cat==="all"||it.category===state.cat);
-  const lines=[`# AI 热点榜单（${fmtBeijing(DATA.generated_at||"").split("（")[0].trim()}）`,""];
+  const items=currentItems().filter(it=>state.cat==="all"||it.category===state.cat);
+  const lines=[`# AI 热点榜单 · ${RANGE_LABEL[state.range]}最火（${fmtBeijing(DATA.generated_at||"").split("（")[0].trim()}）`,""];
   items.slice(0,30).forEach((it,i)=>{
     const s=it.extra&&it.extra.stars!=null?` ★${fmtStars(it.extra.stars)}`:"";
     lines.push(`${i+1}. **[${it.title}](${it.url})** · ${it.category}${s}`);
@@ -526,6 +570,11 @@ document.getElementById("exportBtn").addEventListener("click", ()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
+document.getElementById("rangetabs").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  state.range=b.dataset.range; state.cat="all";
+  syncRangeUI(); buildStats(); buildFilters(); render();
+});
 document.getElementById("filters").addEventListener("click", e=>{
   if(e.target.tagName!=="BUTTON") return;
   document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
