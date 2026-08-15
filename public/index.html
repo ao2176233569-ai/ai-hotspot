@@ -501,9 +501,11 @@ function render(){
     const lang=(it.extra&&it.extra.language)?`<span class="lang"><span class="d"></span>${esc(it.extra.language)}</span>`:"";
     const topics=(it.extra&&it.extra.topics)?it.extra.topics.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join(""):"";
     const delta = state.range==="day" ? it.day_delta : state.range==="month" ? it.month_delta : it.year_delta;
+    const vel = state.range==="day" ? it.day_velocity : state.range==="month" ? it.month_velocity : it.year_velocity;
     const dlbl = RANGE_LABEL[state.range];
     let badge = "";
     if(delta!=null) badge = `<span class="badge fire">${dlbl} +${fmtStars(delta)}⭐</span>`;
+    else if(vel!=null) badge = `<span class="badge fire">🚀 日均 +${fmtStars(Math.round(vel))}⭐</span>`;
     else if(it.rank===1) badge = `<span class="badge fire">🥇 榜首</span>`;
     else if(it.rank<=3) badge = `<span class="badge fire">🔥 飙升</span>`;
     const fullDesc = (it.description||"").trim() ? `<p class="full">${esc(it.description)}</p>` : "";
