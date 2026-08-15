@@ -160,8 +160,18 @@
     position: absolute; top: 5px; bottom: 5px; left: 5px; z-index: 0;
     width: calc((100% - 10px) / 3); border-radius: 12px;
     background: linear-gradient(135deg, var(--hot), var(--hot-2));
-    box-shadow: 0 8px 22px var(--glow);
+    box-shadow: 0 8px 22px var(--glow), 0 0 22px color-mix(in srgb, var(--hot) 42%, transparent);
     transition: transform .34s cubic-bezier(.34,1.2,.4,1);
+  }
+  .rangetabs .thumb::before {
+    content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.34), rgba(255,255,255,0) 44%);
+  }
+  .rangetabs .thumb.flash { animation: thumbFlash .45s ease; }
+  @keyframes thumbFlash {
+    0%   { box-shadow: 0 8px 22px var(--glow), 0 0 10px color-mix(in srgb, var(--hot) 28%, transparent); }
+    45%  { box-shadow: 0 8px 22px var(--glow), 0 0 36px color-mix(in srgb, var(--hot) 78%, transparent); }
+    100% { box-shadow: 0 8px 22px var(--glow), 0 0 22px color-mix(in srgb, var(--hot) 42%, transparent); }
   }
   .rangetabs button {
     position: relative; z-index: 1; flex: 1 1 0; border: none; background: transparent; color: var(--sub);
@@ -200,6 +210,8 @@
   .lang-pop::-webkit-scrollbar { width: 7px; }
   .lang-pop::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
   .lang-filter.open .lang-pop { opacity: 1; transform: none; pointer-events: auto; }
+  /* 分类下拉靠左展开（语言下拉靠右） */
+  #catFilter .lang-pop { left: 0; right: auto; transform-origin: top left; }
   .lang-opt {
     display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none;
     background: transparent; border-radius: 9px; font-size: 13px; color: var(--text);
@@ -382,8 +394,15 @@
   </header>
 
   <div class="toolbar">
-    <div class="filters" id="filters"></div>
     <div class="controls">
+      <div class="lang-filter" id="catFilter">
+        <button class="lang-trigger" id="catTrigger" type="button">
+          <span class="lang-dot" id="catDot"></span>
+          <span class="lang-label" id="catLabel">全部分类</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="lang-pop" id="catPop" role="listbox"></div>
+      </div>
       <select id="sort">
         <option value="trend">按趋势分（默认）</option>
         <option value="stars">按 Star 总量</option>
@@ -478,7 +497,7 @@ async function load(){
   document.getElementById("updated-text").textContent = "最后更新：" + fmtBeijing(DATA.generated_at || "");
   syncRangeUI();
   buildStats();
-  buildFilters();
+  buildCatFilter();
   buildLangFilter();
   render();
 }
@@ -504,14 +523,31 @@ function buildStats(){
   nsEl.innerHTML = nsEl.textContent + '<span class="u">⭐</span>';
 }
 
-function buildFilters(){
+function buildCatFilter(){
   const cats = DATA.categories || DEFAULT_CATS;
   const present = new Set(currentItems().map(i=>i.category));
+  const counts = {};
+  currentItems().forEach(i=>{ if(i.category) counts[i.category]=(counts[i.category]||0)+1; });
   const order = cats.filter(c=>present.has(c));
-  const box = document.getElementById("filters"); box.innerHTML="";
-  const mk=(label,val,active)=>{ const b=document.createElement("button"); b.textContent=label; b.dataset.cat=val; if(active)b.classList.add("active"); box.appendChild(b); };
-  mk("全部","all",state.cat==="all");
-  order.forEach(c=>mk(c,c,state.cat===c));
+  const pop = document.getElementById("catPop"); pop.innerHTML="";
+  const mkOpt=(name,color,count,val)=>{
+    const o=document.createElement("button");
+    o.type="button"; o.className="lang-opt"+(state.cat===val?" active":""); o.dataset.cat=val;
+    o.innerHTML=`<span class="lo-dot" style="background:${color}"></span>`+
+      `<span class="lo-name">${esc(name)}</span>`+
+      (count!=null?`<span class="lo-count">${count}</span>`:"")+
+      (state.cat===val?`<span class="lo-check">✓</span>`:"");
+    pop.appendChild(o);
+  };
+  mkOpt("全部分类","var(--faint)",null,"all");
+  order.forEach(c=>mkOpt(c, CAT_COLOR[c]||"#cbd5e1", counts[c], c));
+  updateCatTrigger();
+}
+function updateCatTrigger(){
+  const label=document.getElementById("catLabel");
+  const dot=document.getElementById("catDot");
+  if(state.cat==="all"){ label.textContent="全部分类"; dot.style.background="var(--faint)"; }
+  else { label.textContent=state.cat; dot.style.background=CAT_COLOR[state.cat]||"#cbd5e1"; }
 }
 
 const LANG_COLORS = {
@@ -694,12 +730,9 @@ document.getElementById("exportBtn").addEventListener("click", ()=>{
 document.getElementById("rangetabs").addEventListener("click", e=>{
   const b=e.target.closest("button"); if(!b) return;
   state.range=b.dataset.range; state.cat="all";
-  syncRangeUI(); buildStats(); buildFilters(); render();
-});
-document.getElementById("filters").addEventListener("click", e=>{
-  if(e.target.tagName!=="BUTTON") return;
-  document.querySelectorAll("#filters button").forEach(b=>b.classList.remove("active"));
-  e.target.classList.add("active"); state.cat=e.target.dataset.cat; render();
+  syncRangeUI(); buildStats(); buildCatFilter(); render();
+  const thumb=document.getElementById("rangeThumb");
+  thumb.classList.remove("flash"); void thumb.offsetWidth; thumb.classList.add("flash");
 });
 document.getElementById("sort").addEventListener("change", e=>{ state.sort=e.target.value; render(); });
 document.getElementById("search").addEventListener("input", e=>{ state.q=e.target.value; render(); });
@@ -717,9 +750,27 @@ document.getElementById("langPop").addEventListener("click", e=>{
   document.getElementById("langFilter").classList.remove("open");
   render();
 });
+
+/* 分类自定义下拉（同款色点下拉） */
+document.getElementById("catTrigger").addEventListener("click", e=>{
+  e.stopPropagation();
+  document.getElementById("catFilter").classList.toggle("open");
+});
+document.getElementById("catPop").addEventListener("click", e=>{
+  const o=e.target.closest(".lang-opt"); if(!o) return;
+  state.cat=o.dataset.cat;
+  document.querySelectorAll("#catPop .lang-opt").forEach(x=>x.classList.toggle("active", x.dataset.cat===state.cat));
+  updateCatTrigger();
+  document.getElementById("catFilter").classList.remove("open");
+  render();
+});
+
+/* 点击外部关闭任意下拉 */
 document.addEventListener("click", e=>{
-  const lf=document.getElementById("langFilter");
-  if(lf.classList.contains("open") && !lf.contains(e.target)) lf.classList.remove("open");
+  ["langFilter","catFilter"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el.classList.contains("open") && !el.contains(e.target)) el.classList.remove("open");
+  });
 });
 
 load();
