@@ -245,6 +245,7 @@ def _normalize_repo(repo):
         "published": (repo.get("pushed_at") or "")[:10],
         "raw_metric": float(stars),
         "extra": {"stars": stars,
+                  "forks": repo.get("forks_count", 0),
                   "language": repo.get("language"),
                   "topics": repo.get("topics", []),
                   "created_at": repo.get("created_at") or ""},
