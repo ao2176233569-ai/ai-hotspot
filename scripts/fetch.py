@@ -622,6 +622,10 @@ def summarize_all(items, workers=6):
             except Exception:
                 s = None
             it["summary"] = (s.strip() if s else fallback_summary(it))
+            # 英文简介：默认用 GitHub 原始英文描述（无需 LLM，云端构建即可生效）；
+            # 若原始描述为空则退回中文摘要，保证始终有内容可切。
+            en = (it.get("description") or "").strip()
+            it["summary_en"] = en or it["summary"]
             done += 1
             if done % 10 == 0 or done == total:
                 log(f"summary {done}/{total}")
@@ -686,7 +690,7 @@ def DEMO_ITEMS():
             "source": "github", "category": cat, "title": title,
             "url": "https://github.com/" + title,
             "description": desc, "published": today, "raw_metric": float(stars),
-            "summary": summ,
+            "summary": summ, "summary_en": desc,
             "extra": {"stars": stars, "forks": forks, "language": "Python",
                       "topics": topics, "created_at": created, "pushed_at": today},
             "deltas": {
