@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI 热点聚合脚本（GitHub 版）
-==========================
+AI 热点聚合脚本（GitHub 版 · v2 全面改版）
+=========================================
 只聚合 GitHub 上最热门的 AI 项目，按 AI 子领域自动分类，
 调用大模型为每条生成一句中文摘要，输出 public/data.json。
 
+v2 底层逻辑改版（调研自 GitTrend / trending-repos / apifyforge 信号栈）：
+  1. 候选池：多查询扇出（多个 AI topic + 关键词 + 上升新星），去重合并，覆盖远不止一个 topic。
+  2. 历史：同时记录 stars 与 forks 快照，用于计算双指标增量。
+  3. 增量：各周期（当天/当月/当年）有真实历史则算真实增量；
+     首日无基线则用「总星/库龄 × 周期天数」估算，使三档从第一天起数值与排序就不同。
+  4. 复合动量分 TrendScore = (规模归一 star 增量 + 0.3 × 规模归一 fork 增量) × 新鲜度。
+     · 规模归一：gain / ln(total+10)，让小体量暴涨库能压过巨头（GitTrend 思路）。
+     · 新鲜度：随库龄指数衰减，新库最高约 1.6×，让「上升新星」冒头。
+  5. 排名变化：对比上次运行的名次，给出「↑N / ↓N」，让榜单有动态感。
+
 用法：
-  python scripts/fetch.py            # 正式抓取（需联网 + LLM_API_KEY）
+  python scripts/fetch.py            # 正式抓取（需联网）
   python scripts/fetch.py --demo     # 使用内置示例数据，离线预览前端 UI
 
 环境变量（正式模式）：
-  LLM_API_KEY     主用模型 Key（默认平台 agnes，https://apihub.agnes-ai.com/v1）
-  LLM_BASE_URL    主用模型 Base URL（默认 https://apihub.agnes-ai.com/v1）
-  LLM_MODEL       主用模型名（默认 agnes-2.0-flash）
-  FALLBACK_API_KEY / FALLBACK_BASE_URL / FALLBACK_MODEL  备用模型（可同平台不同 Key）
-未设置任何 Key 时，摘要由离线中文词典兜底，脚本仍会产出全中文 data.json。
-本地可用 .env 文件（参考 .env.example）放置以上变量，脚本启动时会自动加载。
+  云端构建已显式禁用实时 LLM（见 build.yml LLM_API_KEY 置空），仅走缓存 + 离线词典兜底。
+  摘要命中 summaries_cache.json 直接返回（免网络、必中文），未命中走离线中文兜底。
 """
 import os
 import sys
@@ -54,24 +60,20 @@ def load_dotenv(path=".env"):
                 os.environ[k] = v
 load_dotenv()
 
-# GitHub 抓取：围绕一个宽泛的 AI topic，取总 star 较高的项目组成"稳定候选池"。
-# 用稳定池才能持续累积 star 历史、算出日/月/年增量（避免用 pushed 过滤把老牌库排除）。
-GH_TOPIC       = "machine-learning"
+# GitHub 抓取：候选池由多路查询扇出组成（见 QUERIES），
+# 去重合并后形成「稳定头部 + 上升新星」的混合池，覆盖远不止一个 topic。
 GH_PER_PAGE    = 100
-GH_MIN_STARS   = 200
-GH_POOL_SIZE   = 500          # 稳定头部候选池上限（5 页 × 100）
-GH_POOL_CAP    = 800          # 合并「稳定头部 + 上升新星」后的总候选池上限
-GH_PAGES       = 5
-GH_RISING_PAGES = 3           # 上升新星每个查询翻页数（控制 API 调用次数）
+GH_POOL_CAP    = 900          # 合并所有查询后的总候选池上限
+GH_REQ_BUDGET  = 22           # Search API 调用次数预算（认证下 30/min，双构建足够）
 
 KEEP_TOP_N     = 30           # 每个时间窗（当天/当月/当年）各取 Top 30
 
-# star 增量窗口（天）
+# star / fork 增量窗口（天）
 DELTA_DAY   = 1
 DELTA_MONTH = 30
 DELTA_YEAR  = 365
 
-# star 历史快照文件（每次构建写回，用于算增量）。不进 git，由 workflow 用 gh 上传/下载。
+# 历史快照文件（每次构建写回，用于算增量与排名变化）。不进 git，由 workflow 用 gh 上传/下载。
 HISTORY_PATH = env("HISTORY_PATH", "stars_history.json")
 HISTORY_KEEP_DAYS = 400       # 只保留最近 400 天快照，控制文件体积
 
@@ -80,28 +82,36 @@ SUMMARY_DEADLINE_SEC = 18 * 60   # 到点后剩余项直接走兜底摘要
 SUMMARY_TIMEOUT      = 60        # 单次 LLM HTTP 超时（秒）
 SUMMARY_MAX_TOKENS   = 800       # 生成上限（仅需一句 ≤40 字摘要）
 
+# 复合动量分权重（参考 trending-repos：star 主导，fork 辅助，新鲜度加成）
+W_STAR   = 1.0
+W_FORK   = 0.3
+FRESH_HALF_LIFE = 150.0          # 新鲜度半衰期（天）：新库加成更高
+FRESH_MAX = 0.3                  # 最新鲜库额外加成上限（即最高 1.3×，避免过度放大新库）
+
 # 分类体系（顺序即优先级：越具体的子类越靠前，避免被宽泛类吞掉）
 CATEGORIES = ["大模型 / LLM", "智能体 / Agent", "多模态 / 视觉", "检索增强 / RAG",
               "训练 / 微调", "推理 / 部署", "语音 / 音频", "框架 / 工具", "其他"]
 
 CAT_KEYWORDS = [
-    ("智能体 / Agent", ["agent", "autonomous", "multi-agent", "ai-agent", "workflow", "tool-use"]),
+    ("智能体 / Agent", ["agent", "autonomous", "multi-agent", "ai-agent", "ai-agents",
+                        "agentic", "tool-use", "tooluse", "workflow", "copilot", "mcp"]),
     ("多模态 / 视觉", ["computer-vision", "vision", "diffusion", "stable-diffusion",
-                      "text-to-image", "image-generation", "video", "video-generation",
-                      "multimodal", "vlm", "ocr", "segment"]),
-    ("检索增强 / RAG", ["rag", "retrieval-augmented", "vector-database",
-                       "embedding", "semantic-search", "knowledge-base"]),
+                      "text-to-image", "text-to-video", "image-generation", "image-gen",
+                      "video", "video-generation", "multimodal", "vlm", "ocr", "segment",
+                      "face", "photoreal"]),
+    ("检索增强 / RAG", ["rag", "retrieval-augmented", "vector-database", "vector-db",
+                       "embedding", "semantic-search", "knowledge-base", "graphrag"]),
     ("训练 / 微调", ["training", "fine-tuning", "finetune", "lora", "qlora", "rlhf",
-                    "distillation", "pretraining", "deepseed", "deepspeed"]),
+                    "distillation", "pretraining", "deepspeed", "accelerate", "sft"]),
     ("推理 / 部署", ["inference", "serving", "deployment", "onnx", "quantization",
-                    "llama-cpp", "tensorrt", "triton", "accelerat"]),
-    ("语音 / 音频", ["speech", "tts", "asr", "audio", "voice", "music", "sound"]),
+                    "llama-cpp", "tensorrt", "triton", "vllm", "sglang", "ort"]),
+    ("语音 / 音频", ["speech", "tts", "asr", "stt", "audio", "voice", "music", "sound", "sing"]),
     ("大模型 / LLM", ["llm", "large-language-models", "gpt", "transformer", "llama",
-                     "chatgpt", "nlp", "language-model", "prompt", "chatbot", "moe"]),
+                     "chatgpt", "nlp", "language-model", "language-models", "prompt",
+                     "chatbot", "moe", "reasoning", "mixture-of-experts", "generative"]),
     ("框架 / 工具", ["framework", "library", "toolkit", "pytorch", "tensorflow", "jax",
-                    "api", "sdk", "benchmark", "dataset", "data"]),
+                    "api", "sdk", "benchmark", "dataset", "data", "cli", "gui", "scraper"]),
 ]
-
 
 PRIMARY = {
     "base":  env("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1"),
@@ -177,6 +187,7 @@ TERM_ZH = {
     "quantitative": "量化", "finance": "金融", "financial": "金融",
     "research": "研究", "pipeline": "流水线", "pipelines": "流水线",
     "automation": "自动化", "generative": "生成式", "generative ai": "生成式 AI",
+    "agentic": "智能体化", "mcp": "模型上下文协议", "copilot": "编程助手",
 }
 
 
@@ -212,7 +223,7 @@ def classify(repo):
     return "其他"
 
 
-# ---------------- 抓取：GitHub ----------------
+# ---------------- 抓取：GitHub（多查询扇出） ----------------
 def _gh_token():
     return env("GH_TOKEN", "") or env("GITHUB_TOKEN", "")
 
@@ -245,53 +256,103 @@ def _normalize_repo(repo):
         "published": (repo.get("pushed_at") or "")[:10],
         "raw_metric": float(stars),
         "extra": {"stars": stars,
-                  "forks": repo.get("forks_count", 0),
+                  "forks": repo.get("forks_count", 0) or 0,
                   "language": repo.get("language"),
                   "topics": repo.get("topics", []),
-                  "created_at": repo.get("created_at") or ""},
+                  "created_at": (repo.get("created_at") or "")[:10],
+                  "pushed_at": (repo.get("pushed_at") or "")[:10]},
     }
 
 
-def fetch_github():
-    """候选池 = 稳定头部(总 star 前 N) + 上升新星(近 2 年新建即爆红 / 近 60 天活跃的高 star 库)。
-    目的是让榜单出现真正在涨、新冒头的热门项目，而不是只把所有时间的巨头按总 star 排。"""
-    token = _gh_token()
+# 候选池 = 「多 AI topic + 关键词 + 上升新星」扇出，去重合并。
+# 不同查询覆盖不同语义（llm / agent / diffusion / rag / cv / mlops …），避免只抓一个 topic 漏掉大量 AI 库。
+def _build_queries():
     today = datetime.date.today()
     recent_created = (today - datetime.timedelta(days=730)).isoformat()   # 近 2 年新建
     recent_pushed = (today - datetime.timedelta(days=60)).isoformat()    # 近 60 天活跃
-    queries = [
-        (f"topic:{GH_TOPIC} stars:>{GH_MIN_STARS}", GH_PAGES),          # 稳定头部
-        (f"topic:{GH_TOPIC} stars:>300 created:>{recent_created}", GH_RISING_PAGES),  # 新建即爆红
-        (f"topic:{GH_TOPIC} stars:>300 pushed:>={recent_pushed}", GH_RISING_PAGES),  # 近期活跃热库
+    return [
+        # 稳定头部（宽泛 AI 领域，按总 star）
+        ("topic:machine-learning stars:>200", 2),
+        ("topic:deep-learning stars:>200", 1),
+        ("topic:computer-vision stars:>100", 1),
+        # 具体子领域（高信号，抓得起量就抓）
+        ("topic:llm stars:>100", 1),
+        ("topic:large-language-models stars:>50", 1),
+        ("topic:agent stars:>100", 1),
+        ("topic:ai-agents stars:>50", 1),
+        ("topic:stable-diffusion stars:>50", 1),
+        ("topic:diffusion stars:>50", 1),
+        ("topic:rag stars:>50", 1),
+        ("topic:mlops stars:>50", 1),
+        # 关键词（捕捉没打 topic 标签、但名字/描述里带 ai/llm/agent 的库）
+        ("ai in:name,description stars:>300", 1),
+        ("llm in:name,description stars:>300", 1),
+        ("agent in:name,description stars:>300", 1),
+        # 上升新星（新建即爆红 / 近期活跃的高 star 库）
+        (f"topic:machine-learning stars:>300 created:>{recent_created}", 1),
+        (f"topic:machine-learning stars:>300 pushed:>={recent_pushed}", 1),
     ]
+
+
+def fetch_github():
+    """多查询扇出抓取候选池；受 API 预算与池上限约束，去重合并。"""
+    token = _gh_token()
+    queries = _build_queries()
+    budget = GH_REQ_BUDGET
     items, seen = [], set()
     for q, pages in queries:
+        if budget <= 0:
+            break
         for page in range(1, pages + 1):
+            if budget <= 0:
+                break
             for repo in _gh_search_once(q, page, token):
                 name = repo.get("full_name", "")
-                if name in seen:
+                if not name or name in seen:
                     continue
                 seen.add(name)
                 items.append(_normalize_repo(repo))
+            budget -= 1
             if len(items) >= GH_POOL_CAP:
                 break
             time.sleep(1)   # 放慢，避免触发 GitHub 搜索速率限制
         if len(items) >= GH_POOL_CAP:
             break
     items = items[:GH_POOL_CAP]
-    log(f"github: {len(items)} items (pool, incl. rising stars)")
+    log(f"github: {len(items)} items (multi-query pool incl. rising stars)")
     return items
 
 
-# ---------------- star 历史（用于算增量） ----------------
+# ---------------- 历史（stars + forks 快照 + 上次排名） ----------------
+# history 结构：
+# {
+#   "snapshots": { "YYYY-MM-DD": { full_name: {"s": stars, "f": forks} }, ... },
+#   "prev_ranks": { "day": {full_name: rank}, "month": {...}, "year": {...} }   # 上次运行写入
+# }
 def load_history(path):
     try:
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
-                return json.load(f)
+                d = json.load(f)
+            # 兼容旧 schema：{ "YYYY-MM-DD": { full_name: stars } } → 新 schema
+            if isinstance(d, dict) and "snapshots" not in d and "prev_ranks" not in d:
+                snaps = {}
+                for date_key, repos in d.items():
+                    if not isinstance(repos, dict):
+                        continue
+                    # 旧 schema 只存了 star 数，fork 历史未知 → 仅迁移 "s"，fork 回退到估算
+                    snaps[date_key] = {
+                        fn: {"s": int(v) if isinstance(v, (int, float)) else 0}
+                        for fn, v in repos.items() if isinstance(fn, str)
+                    }
+                d = {"snapshots": snaps, "prev_ranks": {}}
+                log("migrated old star history schema:", len(snaps), "days")
+            d.setdefault("snapshots", {})
+            d.setdefault("prev_ranks", {})
+            return d
     except Exception as e:
         log("history load failed:", e)
-    return {}
+    return {"snapshots": {}, "prev_ranks": {}}
 
 
 def upload_history_to_repo(path):
@@ -324,11 +385,11 @@ def upload_history_to_repo(path):
 
 def save_history(history, path, today, current_map):
     """把今天的快照写入 history（保留最近 HISTORY_KEEP_DAYS 天），并视情况上传到仓库。"""
-    history[today] = current_map
-    dates = sorted(history.keys())
+    history["snapshots"][today] = current_map
+    dates = sorted(history["snapshots"].keys())
     if len(dates) > HISTORY_KEEP_DAYS:
         for d in dates[:-HISTORY_KEEP_DAYS]:
-            history.pop(d, None)
+            history["snapshots"].pop(d, None)
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(history, f, ensure_ascii=False, indent=1, sort_keys=True)
@@ -338,51 +399,94 @@ def save_history(history, path, today, current_map):
         upload_history_to_repo(path)
 
 
-def delta_for(history, full_name, current_stars, days_back):
+def delta_for(snapshots, full_name, current_stars, days_back):
     """返回 days_back 天前的 star 增量（current - 历史快照）。找不到更早快照返回 None。"""
     today = datetime.date.today()
     target = (today - datetime.timedelta(days=days_back)).isoformat()
     best = None
-    for d in history:                      # history 形如 {date: {full_name: stars}}
+    for d in snapshots:
         if d <= target and (best is None or d > best):
             best = d
     if best is None:
         return None
-    past = history[best].get(full_name)
-    if past is None:
+    past = snapshots[best].get(full_name)
+    if not isinstance(past, dict) or "s" not in past:
         return None
-    return max(0, current_stars - past)
+    return max(0, current_stars - past["s"])
+
+
+def fork_delta_for(snapshots, full_name, current_forks, days_back):
+    today = datetime.date.today()
+    target = (today - datetime.timedelta(days=days_back)).isoformat()
+    best = None
+    for d in snapshots:
+        if d <= target and (best is None or d > best):
+            best = d
+    if best is None:
+        return None
+    past = snapshots[best].get(full_name)
+    # "f" 缺失或为 0（旧历史/迁移 artifact）→ 视为未知，回退到估算，避免把全部 fork 数当增量
+    if not isinstance(past, dict) or "f" not in past or not past.get("f"):
+        return None
+    return max(0, current_forks - past["f"])
 
 
 def compute_deltas(items, history):
-    for it in items:
-        s = it["extra"]["stars"]
-        it["day_delta"]   = delta_for(history, it["title"], s, DELTA_DAY)
-        it["month_delta"] = delta_for(history, it["title"], s, DELTA_MONTH)
-        it["year_delta"]  = delta_for(history, it["title"], s, DELTA_YEAR)
-
-
-def add_velocity(items, history):
-    """给每个 item 算「日均涨星」(stars/day)：
-    - 有真实增量窗口时：增量 / 天数（当日=day_delta，当月=month_delta/30，当年=year_delta/365）。
-    - 首日无基线时：用 总star / 库龄 估算（估算值，非真实统计），让上升新星当天就能冒头。
-    排序改用 velocity 而非绝对增量，避免巨头永远霸榜，使新冒头、涨得猛的库浮到前面。"""
+    """计算各周期 star/fork 增量；有真实历史则取真实值，否则用库龄估算（标记 estimated）。"""
+    snapshots = history.get("snapshots", {})
     today = datetime.date.today()
     for it in items:
         s = it["extra"]["stars"]
+        f = it["extra"]["forks"]
         ca = (it["extra"].get("created_at") or "")[:10]
         try:
             age = max(1, (today - datetime.date.fromisoformat(ca)).days)
         except Exception:
             age = 3650
         it["extra"]["age_days"] = age
-        it["day_velocity"]   = (it["day_delta"]   / 1.0)   if it.get("day_delta")   is not None else s / age
-        it["month_velocity"] = (it["month_delta"] / 30.0)  if it.get("month_delta") is not None else s / age
-        it["year_velocity"]  = (it["year_delta"]  / 365.0) if it.get("year_delta")  is not None else s / age
+        it["deltas"] = {}
+        for period, win in (("day", DELTA_DAY), ("month", DELTA_MONTH), ("year", DELTA_YEAR)):
+            d_star = delta_for(snapshots, it["title"], s, win)
+            d_fork = fork_delta_for(snapshots, it["title"], f, win)
+            if d_star is not None and d_fork is not None:
+                it["deltas"][period] = {"stars": d_star, "forks": d_fork, "est": False}
+            else:
+                # 首日无基线：用「总量 / 库龄 × 周期天数」估算，并封顶为总量（新库不会超过自身历史）
+                est_star = min(int(s / age * win), s)
+                est_fork = min(int(f / age * win), f) if f else 0
+                it["deltas"][period] = {"stars": est_star, "forks": est_fork, "est": True}
+
+
+def _freshness(age_days):
+    """新鲜度乘数：新库加成高、老库趋近 1。"""
+    return 1.0 + FRESH_MAX * math.exp(-age_days / FRESH_HALF_LIFE)
+
+
+def _safe_log(x):
+    return math.log(max(x, 1) + 10)   # ln(total+10)，避免 log(0)
+
+
+def add_scores(items):
+    """复合动量分 TrendScore = (规模归一 star 增量 + 0.3×规模归一 fork 增量) × 新鲜度。
+    规模归一用 gain/ln(total+10)，让小体量暴涨库也能压过巨头（GitTrend 思路）。"""
+    for it in items:
+        s = it["extra"]["stars"]
+        f = it["extra"]["forks"]
+        age = it["extra"].get("age_days", 3650)
+        fresh = _freshness(age)
+        size_s = _safe_log(s)
+        size_f = _safe_log(f if f else 1)
+        it["scores"] = {}
+        for period in ("day", "month", "year"):
+            d = it["deltas"][period]
+            m_star = d["stars"] / size_s
+            m_fork = (d["forks"] / size_f) if f else 0
+            it["scores"][period] = round((W_STAR * m_star + W_FORK * m_fork) * fresh, 4)
+        it["freshness"] = round(fresh, 3)
 
 
 def score_all(items):
-    """给每个 item 算 log 热度分（0~1），用于排序选项。"""
+    """给每个 item 算 log 热度分（0~1），用于「按 Star 总量」排序选项的辅助指标。"""
     if not items:
         return
     mx = max((it["raw_metric"] for it in items), default=1) or 1
@@ -391,12 +495,20 @@ def score_all(items):
         it["heat_score"] = round(math.log10(it["raw_metric"] + 1) / log_mx, 4) if log_mx > 0 else 0
 
 
-def build_range(items, vel_key):
-    """按某时间窗的「日均涨星」(velocity, stars/day) 降序取 Top N；
-    首日无基线时 velocity 由 总star/库龄 估算，仍能把上升新星排到前面。"""
+def compute_rank_changes(items, history):
+    """对比上次运行的名次，给出排名变化（正值=上升）。首次运行无上次名次→None。"""
+    prev = history.get("prev_ranks", {})
+    # items 已分组进 ranges 后再调本函数；这里接收「按 period 排好序的列表」更合适。
+    # 为简化：在 build_range 内完成 rank_change 计算。
+    return prev
+
+
+def build_range(items, period):
+    """按某周期的复合动量分降序取 Top N；同时对比上次名次填充 rank_change。"""
+    prev = None  # 由调用方注入
     def sort_key(it):
-        v = it.get(vel_key)
-        return (v is not None, v if v is not None else 0, it["raw_metric"])
+        sc = it["scores"].get(period, 0)
+        return sc
     lst = sorted(items, key=sort_key, reverse=True)[:KEEP_TOP_N]
     out = []
     for i, it in enumerate(lst, 1):
@@ -409,12 +521,29 @@ def build_range(items, vel_key):
 def build_ranges(items, history):
     score_all(items)
     compute_deltas(items, history)
-    add_velocity(items, history)
-    return {
-        "day":   build_range(items, "day_velocity"),
-        "month": build_range(items, "month_velocity"),
-        "year":  build_range(items, "year_velocity"),
+    add_scores(items)
+    ranges = {
+        "day": build_range(items, "day"),
+        "month": build_range(items, "month"),
+        "year": build_range(items, "year"),
     }
+    # 排名变化：用本次名次 vs 上次运行名次
+    prev = history.get("prev_ranks", {})
+    new_prev = {}
+    for period in ("day", "month", "year"):
+        cur_map = {it["title"]: it["rank"] for it in ranges[period]}
+        new_prev[period] = cur_map
+        prev_map = prev.get(period, {})
+        for it in ranges[period]:
+            p = prev_map.get(it["title"])
+            it["rank_change"] = (p - it["rank"]) if p is not None else None
+    # 写回本次名次，供下次对比
+    history["prev_ranks"] = new_prev
+    # is_new：以库龄为准（新建 <90 天视为新星），避免首日 prev_ranks 为空时全员误标
+    for period in ranges:
+        for it in ranges[period]:
+            it["is_new"] = it["extra"].get("age_days", 9999) < 90
+    return ranges
 
 
 # ---------------- 大模型摘要 ----------------
@@ -500,103 +629,88 @@ def summarize_all(items, workers=6):
 
 # ---------------- 示例数据（离线预览） ----------------
 def DEMO_ITEMS():
+    """内置示例，含 stars/forks/created_at，使 v2 打分引擎在预览中也能体现真实差异。"""
     today = datetime.date.today().isoformat()
-    return [
-        {"source": "github", "category": "大模型 / LLM",
-         "title": "deepseek-ai/DeepSeek-V3",
-         "url": "https://github.com/deepseek-ai/DeepSeek-V3",
-         "description": "Official implementation of DeepSeek-V3, a strong Mixture-of-Experts language model with 671B total parameters.",
-         "published": today, "raw_metric": 95000.0,
-         "summary": "DeepSeek-V3 官方实现，671B 参数的 MoE 旗舰语言模型。",
-         "day_delta": 320, "month_delta": 5200, "year_delta": 95000,
-         "extra": {"stars": 95000, "language": "Python", "topics": ["llm", "moe", "pytorch"]}},
-        {"source": "github", "category": "推理 / 部署",
-         "title": "vllm-project/vllm",
-         "url": "https://github.com/vllm-project/vllm",
-         "description": "A high-throughput and memory-efficient inference and serving engine for LLMs.",
-         "published": today, "raw_metric": 38000.0,
-         "summary": "高吞吐、省显存的大模型推理与服务引擎。",
-         "day_delta": 85, "month_delta": 1800, "year_delta": 30000,
-         "extra": {"stars": 38000, "language": "Python", "topics": ["llm", "inference", "serving"]}},
-        {"source": "github", "category": "多模态 / 视觉",
-         "title": "comfyanonymous/ComfyUI",
-         "url": "https://github.com/comfyanonymous/ComfyUI",
-         "description": "The most powerful and modular diffusion model GUI, API and backend with a graph/node based interface.",
-         "published": today, "raw_metric": 72000.0,
-         "summary": "基于节点图的最强模块化扩散模型可视化与推理后端。",
-         "day_delta": 150, "month_delta": 2400, "year_delta": 60000,
-         "extra": {"stars": 72000, "language": "Python", "topics": ["diffusion", "stable-diffusion", "image-generation"]}},
-        {"source": "github", "category": "智能体 / Agent",
-         "title": "langchain-ai/langchain",
-         "url": "https://github.com/langchain-ai/langchain",
-         "description": "Build context-aware reasoning applications with LLMs. Frameworks for agents, RAG and orchestration.",
-         "published": today, "raw_metric": 95000.0,
-         "summary": "面向 LLM 应用的开发框架，内置 Agent、RAG 与编排能力。",
-         "day_delta": 40, "month_delta": 800, "year_delta": 90000,
-         "extra": {"stars": 95000, "language": "Python", "topics": ["llm", "agents", "framework"]}},
-        {"source": "github", "category": "检索增强 / RAG",
-         "title": "run-llama/llama_index",
-         "url": "https://github.com/run-llama/llama_index",
-         "description": "LlamaIndex is a data framework for your LLM applications to ingest, structure and retrieve private data.",
-         "published": today, "raw_metric": 38000.0,
-         "summary": "面向 LLM 的数据框架，专注私有数据的检索增强（RAG）。",
-         "day_delta": 60, "month_delta": 900, "year_delta": 35000,
-         "extra": {"stars": 38000, "language": "Python", "topics": ["rag", "llm", "retrieval"]}},
-        {"source": "github", "category": "语音 / 音频",
-         "title": "openai/whisper",
-         "url": "https://github.com/openai/whisper",
-         "description": "Robust speech recognition via large-scale weak supervision. Approach to multilingual ASR and translation.",
-         "published": today, "raw_metric": 75000.0,
-         "summary": "OpenAI 开源的强鲁棒性多语种语音识别（ASR）模型。",
-         "day_delta": 20, "month_delta": 400, "year_delta": 70000,
-         "extra": {"stars": 75000, "language": "Python", "topics": ["speech", "asr", "audio"]}},
-        {"source": "github", "category": "训练 / 微调",
-         "title": "hiyouga/LLaMA-Factory",
-         "url": "https://github.com/hiyouga/LLaMA-Factory",
-         "description": "Easy and efficient LLM fine-tuning with LoRA, QLoRA and RLHF. Supports hundreds of models.",
-         "published": today, "raw_metric": 42000.0,
-         "summary": "易用的 LLM 微调框架，支持 LoRA / QLoRA / RLHF。",
-         "day_delta": 110, "month_delta": 2600, "year_delta": 40000,
-         "extra": {"stars": 42000, "language": "Python", "topics": ["llm", "lora", "fine-tuning"]}},
-        {"source": "github", "category": "框架 / 工具",
-         "title": "huggingface/transformers",
-         "url": "https://github.com/huggingface/transformers",
-         "description": "State-of-the-art Machine Learning for PyTorch, JAX and TensorFlow. Thousands of pretrained models.",
-         "published": today, "raw_metric": 140000.0,
-         "summary": "最流行的深度学习模型库，集成数千个预训练模型。",
-         "day_delta": 95, "month_delta": 1500, "year_delta": 130000,
-         "extra": {"stars": 140000, "language": "Python", "topics": ["pytorch", "transformers", "nlp"]}},
-        {"source": "github", "category": "多模态 / 视觉",
-         "title": "facebookresearch/segment-anything",
-         "url": "https://github.com/facebookresearch/segment-anything",
-         "description": "The Segment Anything Model (SAM): a foundation model for image segmentation with promptable masks.",
-         "published": today, "raw_metric": 48000.0,
-         "summary": "Meta 的 SAM：可提示驱动的通用图像分割基础模型。",
-         "day_delta": 15, "month_delta": 300, "year_delta": 46000,
-         "extra": {"stars": 48000, "language": "Python", "topics": ["computer-vision", "segmentation", "vision"]}},
-        {"source": "github", "category": "智能体 / Agent",
-         "title": "microsoft/autogen",
-         "url": "https://github.com/microsoft/autogen",
-         "description": "A framework that enables development of LLM applications using multiple agents that can converse.",
-         "published": today, "raw_metric": 40000.0,
-         "summary": "微软开源的多智能体对话框架，用于编排 LLM 应用。",
-         "day_delta": 70, "month_delta": 1100, "year_delta": 38000,
-         "extra": {"stars": 40000, "language": "Python", "topics": ["llm", "multi-agent", "framework"]}},
+    recent = (datetime.date.today() - datetime.timedelta(days=14)).isoformat()
+    old = (datetime.date.today() - datetime.timedelta(days=1200)).isoformat()
+    base = [
+        ("deepseek-ai/DeepSeek-V3", "大模型 / LLM", 95000, 4200,
+         "Official implementation of DeepSeek-V3, a strong Mixture-of-Experts language model with 671B total parameters.",
+         "DeepSeek-V3 官方实现，671B 参数的 MoE 旗舰语言模型。",
+         ["llm", "moe", "pytorch"], old, 320, 5200, 95000, 180, 2600, 42000),
+        ("vllm-project/vllm", "推理 / 部署", 38000, 3600,
+         "A high-throughput and memory-efficient inference and serving engine for LLMs.",
+         "高吞吐、省显存的大模型推理与服务引擎。",
+         ["llm", "inference", "serving"], old, 85, 1800, 38000, 60, 1200, 36000),
+        ("comfyanonymous/ComfyUI", "多模态 / 视觉", 72000, 4100,
+         "The most powerful and modular diffusion model GUI, API and backend with a graph/node based interface.",
+         "基于节点图的最强模块化扩散模型可视化与推理后端。",
+         ["diffusion", "stable-diffusion", "image-generation"], old, 150, 2400, 72000, 120, 2000, 4100),
+        ("FareedKhan-dev/kimi-k3-in-c", "大模型 / LLM", 5701, 924,
+         "Production-ready Kimi K3 inference in pure C with zero dependencies, blazing fast on CPU.",
+         "零依赖纯 C 实现的 Kimi K3 推理，CPU 上极速。",
+         ["llm", "c", "inference"], recent, 407*1, 407*30, 407*120, 70, 520, 850),
+        ("langchain-ai/langchain", "智能体 / Agent", 95000, 16000,
+         "Build context-aware reasoning applications with LLMs. Frameworks for agents, RAG and orchestration.",
+         "面向 LLM 应用的开发框架，内置 Agent、RAG 与编排能力。",
+         ["llm", "agents", "framework"], old, 40, 800, 95000, 30, 600, 16000),
+        ("run-llama/llama_index", "检索增强 / RAG", 38000, 4200,
+         "LlamaIndex is a data framework for your LLM applications to ingest, structure and retrieve private data.",
+         "面向 LLM 的数据框架，专注私有数据的检索增强（RAG）。",
+         ["rag", "llm", "retrieval"], old, 60, 900, 38000, 45, 700, 4200),
+        ("openai/whisper", "语音 / 音频", 75000, 9000,
+         "Robust speech recognition via large-scale weak supervision. Approach to multilingual ASR and translation.",
+         "OpenAI 开源的强鲁棒性多语种语音识别（ASR）模型。",
+         ["speech", "asr", "audio"], old, 20, 400, 75000, 15, 300, 9000),
+        ("hiyouga/LLaMA-Factory", "训练 / 微调", 42000, 4900,
+         "Easy and efficient LLM fine-tuning with LoRA, QLoRA and RLHF. Supports hundreds of models.",
+         "易用的 LLM 微调框架，支持 LoRA / QLoRA / RLHF。",
+         ["llm", "lora", "fine-tuning"], old, 110, 2600, 42000, 80, 1900, 4900),
+        ("huggingface/transformers", "框架 / 工具", 140000, 28000,
+         "State-of-the-art Machine Learning for PyTorch, JAX and TensorFlow. Thousands of pretrained models.",
+         "最流行的深度学习模型库，集成数千个预训练模型。",
+         ["pytorch", "transformers", "nlp"], old, 95, 1500, 140000, 70, 1100, 28000),
+        ("facebookresearch/segment-anything", "多模态 / 视觉", 48000, 5200,
+         "The Segment Anything Model (SAM): a foundation model for image segmentation with promptable masks.",
+         "Meta 的 SAM：可提示驱动的通用图像分割基础模型。",
+         ["computer-vision", "segmentation", "vision"], old, 15, 300, 48000, 12, 240, 5200),
+        ("microsoft/autogen", "智能体 / Agent", 40000, 6100,
+         "A framework that enables development of LLM applications using multiple agents that can converse.",
+         "微软开源的多智能体对话框架，用于编排 LLM 应用。",
+         ["llm", "multi-agent", "framework"], old, 70, 1100, 40000, 50, 800, 6100),
     ]
+    items = []
+    for (title, cat, stars, forks, desc, summ, topics, created, d_day, d_month, d_year,
+         f_day, f_month, f_year) in base:
+        it = {
+            "source": "github", "category": cat, "title": title,
+            "url": "https://github.com/" + title,
+            "description": desc, "published": today, "raw_metric": float(stars),
+            "summary": summ,
+            "extra": {"stars": stars, "forks": forks, "language": "Python",
+                      "topics": topics, "created_at": created, "pushed_at": today},
+            "deltas": {
+                "day":   {"stars": d_day,   "forks": f_day,   "est": False},
+                "month": {"stars": d_month, "forks": f_month, "est": False},
+                "year":  {"stars": d_year,  "forks": f_year,  "est": False},
+            },
+        }
+        items.append(it)
+    return items
 
 
 def DEMO_HISTORY():
-    """用 DEMO_ITEMS 里预设的增量反推历史快照，使预览模式下三榜单呈现真实差异。"""
+    """预览模式用 DEMO_ITEMS 的增量反推快照，使三榜单在本地预览里有真实差异。"""
     today = datetime.date.today()
     d1 = (today - datetime.timedelta(days=1)).isoformat()
     d30 = (today - datetime.timedelta(days=30)).isoformat()
     d365 = (today - datetime.timedelta(days=365)).isoformat()
-    h = {d1: {}, d30: {}, d365: {}}
+    h = {"snapshots": {d1: {}, d30: {}, d365: {}}, "prev_ranks": {}}
     for it in DEMO_ITEMS():
-        s = it["extra"]["stars"]
-        h[d1][it["title"]]   = s - it["day_delta"]
-        h[d30][it["title"]]  = s - it["month_delta"]
-        h[d365][it["title"]] = s - it["year_delta"]
+        s = it["extra"]["stars"]; f = it["extra"]["forks"]
+        h["snapshots"][d1][it["title"]]   = {"s": s - it["deltas"]["day"]["stars"],   "f": f - it["deltas"]["day"]["forks"]}
+        h["snapshots"][d30][it["title"]]  = {"s": s - it["deltas"]["month"]["stars"], "f": f - it["deltas"]["month"]["forks"]}
+        h["snapshots"][d365][it["title"]] = {"s": s - it["deltas"]["year"]["stars"],  "f": f - it["deltas"]["year"]["forks"]}
     return h
 
 
@@ -617,7 +731,7 @@ def main():
         summarize_all(items, workers=6)
         log("all summaries done")
         today = datetime.date.today().isoformat()
-        current_map = {it["title"]: it["extra"]["stars"] for it in items}
+        current_map = {it["title"]: {"s": it["extra"]["stars"], "f": it["extra"]["forks"]} for it in items}
         save_history(history, HISTORY_PATH, today, current_map)
 
     ranges = build_ranges(items, history)
@@ -630,7 +744,7 @@ def main():
     out = {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "source": "github",
-        "mode": "star-delta",
+        "mode": "trend-score",
         "categories": CATEGORIES,
         "ranges": ranges,
         "count": {k: len(v) for k, v in ranges.items()},
