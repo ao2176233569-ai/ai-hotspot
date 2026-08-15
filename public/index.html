@@ -185,7 +185,8 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 9px;
     transition: color .28s ease;
   }
-  .rangetabs button .ic { font-size: 17px; filter: grayscale(.2); transition: filter .28s ease, transform .28s ease; }
+  .rangetabs button .ic { display: inline-flex; align-items: center; color: inherit; transition: transform .28s ease; }
+  .rangetabs button .ic .ic-svg { width: 18px; height: 18px; display: block; }
   .rangetabs button .tab-txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.18; }
   .rangetabs button .tab-main { font-size: 15px; font-weight: 600; white-space: nowrap; }
   .rangetabs button .tab-cap { font-size: 10.5px; font-weight: 500; opacity: .62; white-space: nowrap; transition: opacity .28s ease; }
@@ -193,7 +194,7 @@
   .rangetabs button:not(.active):hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
   .rangetabs button.active .tab-main { text-shadow: 0 1px 12px rgba(255,255,255,.28); }
   .rangetabs button.active { color: #fff; }
-  .rangetabs button.active .ic { filter: none; transform: scale(1.08); }
+  .rangetabs button.active .ic { transform: scale(1.08); }
   .rangetabs button.active .tab-cap { opacity: .82; }
 
   /* ============ 语言筛选：主题化自定义下拉 ============ */
@@ -396,15 +397,15 @@
     <div class="rangetabs" id="rangetabs">
       <span class="thumb" id="rangeThumb"></span>
       <button data-range="day" class="active">
-        <span class="ic">🔥</span>
+        <span class="ic"><svg class="ic-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></svg></span>
         <span class="tab-txt"><span class="tab-main">当天最火</span><span class="tab-cap">今日爆发</span></span>
       </button>
       <button data-range="month">
-        <span class="ic">📅</span>
+        <span class="ic"><svg class="ic-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></span>
         <span class="tab-txt"><span class="tab-main">当月最火</span><span class="tab-cap">本月热度</span></span>
       </button>
       <button data-range="year">
-        <span class="ic">🏆</span>
+        <span class="ic"><svg class="ic-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/></svg></span>
         <span class="tab-txt"><span class="tab-main">当年最火</span><span class="tab-cap">年度爆款</span></span>
       </button>
     </div>
