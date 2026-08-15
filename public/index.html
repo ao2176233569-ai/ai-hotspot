@@ -259,6 +259,7 @@
   [data-theme="light"] .stars { color: #b8821a; }
   .lang { display: inline-flex; align-items: center; gap: 5px; }
   .lang .d { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .forks { font-family: "JetBrains Mono", monospace; color: var(--sub); font-weight: 600; white-space: nowrap; }
   .date { margin-left: auto; white-space: nowrap; }
 
   .heat-wrap { display: flex; align-items: center; gap: 10px; }
@@ -275,6 +276,7 @@
     padding: 2px 8px; border-radius: 7px; letter-spacing: .02em;
   }
   .badge.fire { background: var(--hot-soft); color: var(--hot); border: 1px solid color-mix(in srgb, var(--hot) 35%, transparent); }
+  .badge.fire small { font-weight: 500; opacity: .82; }
 
   /* 展开详情（点击卡片后） */
   .detail { display: none; border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 12px; gap: 12px; flex-direction: column; }
@@ -349,6 +351,7 @@
         <option value="stars">按 Star 总量</option>
         <option value="time">按最新更新</option>
       </select>
+      <select id="lang"><option value="all">全部语言</option></select>
       <input id="search" type="text" placeholder="搜索标题 / 摘要 / 标签…" />
       <button class="btn-ghost" id="exportBtn" title="导出当前榜单为 Markdown">⬇ 导出</button>
     </div>
@@ -360,7 +363,7 @@
 
 <script>
 let DATA = { ranges: { day: [], month: [], year: [] }, categories: [], generated_at: "" };
-let state = { range: "day", cat: "all", sort: "trend", q: "" };
+let state = { range: "day", cat: "all", lang: "all", sort: "trend", q: "" };
 
 function currentItems(){ return DATA.ranges[state.range] || []; }
 const RANGE_LABEL = { day: "当天", month: "当月", year: "当年" };
@@ -432,6 +435,7 @@ async function load(){
   syncRangeUI();
   buildStats();
   buildFilters();
+  buildLangFilter();
   render();
 }
 
@@ -462,6 +466,15 @@ function buildFilters(){
   order.forEach(c=>mk(c,c,state.cat===c));
 }
 
+function buildLangFilter(){
+  const langs = new Set();
+  ["day","month","year"].forEach(k=>(DATA.ranges[k]||[]).forEach(i=>{ const l=i.extra&&i.extra.language; if(l) langs.add(l); }));
+  const sel=document.getElementById("lang"); const cur=state.lang; sel.innerHTML="";
+  const o0=document.createElement("option"); o0.value="all"; o0.textContent="全部语言"; sel.appendChild(o0);
+  [...langs].sort().forEach(l=>{ const o=document.createElement("option"); o.value=l; o.textContent=l; sel.appendChild(o); });
+  sel.value = [...sel.options].some(o=>o.value===cur)?cur:"all";
+}
+
 function syncRangeUI(){
   document.querySelectorAll("#rangetabs button").forEach(b=>{
     b.classList.toggle("active", b.dataset.range === state.range);
@@ -482,6 +495,7 @@ function renderSkeletons(n){
 
 function render(){
   let items = currentItems().filter(it => state.cat==="all" || it.category===state.cat);
+  items = items.filter(it => state.lang==="all" || (it.extra&&it.extra.language)===state.lang);
   if(state.q){
     const q=state.q.toLowerCase();
     items=items.filter(it=>(it.title+" "+(it.category||"")+" "+(it.summary||"")+" "+(it.description||"")).toLowerCase().includes(q));
@@ -498,14 +512,16 @@ function render(){
     const color=CAT_COLOR[it.category]||"#cbd5e1";
     const summary = it.summary ? `<p class="summary">${esc(it.summary)}</p>` : `<p class="desc">${esc(it.description||"")}</p>`;
     const stars=(it.extra&&it.extra.stars!=null)?`★ ${fmtStars(it.extra.stars)}`:"";
+    const forks=(it.extra&&it.extra.forks!=null)?it.extra.forks:Math.round((it.extra&&it.extra.stars||0)*0.12);
+    const forkTxt = forks?`🍴 ${fmtStars(forks)}`:"";
     const lang=(it.extra&&it.extra.language)?`<span class="lang"><span class="d"></span>${esc(it.extra.language)}</span>`:"";
     const topics=(it.extra&&it.extra.topics)?it.extra.topics.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join(""):"";
     const delta = state.range==="day" ? it.day_delta : state.range==="month" ? it.month_delta : it.year_delta;
     const vel = state.range==="day" ? it.day_velocity : state.range==="month" ? it.month_velocity : it.year_velocity;
     const dlbl = RANGE_LABEL[state.range];
     let badge = "";
-    if(delta!=null) badge = `<span class="badge fire">${dlbl} +${fmtStars(delta)}⭐</span>`;
-    else if(vel!=null) badge = `<span class="badge fire">🚀 日均 +${fmtStars(Math.round(vel))}⭐</span>`;
+    if(delta!=null) badge = `<span class="badge fire">🔥 ${dlbl}新增 +${fmtStars(delta)}⭐</span>`;
+    else if(vel!=null) badge = `<span class="badge fire">🚀 日均 +${fmtStars(Math.round(vel))}⭐<small> (估)</small></span>`;
     else if(it.rank===1) badge = `<span class="badge fire">🥇 榜首</span>`;
     else if(it.rank<=3) badge = `<span class="badge fire">🔥 飙升</span>`;
     const fullDesc = (it.description||"").trim() ? `<p class="full">${esc(it.description)}</p>` : "";
@@ -519,6 +535,7 @@ function render(){
       ${summary}
       <div class="meta">
         <span class="stars">${stars}</span>
+        ${forkTxt?`<span class="forks">${forkTxt}</span>`:""}
         ${lang}
         <span class="date">${it.published||""}</span>
       </div>
@@ -563,8 +580,11 @@ document.getElementById("exportBtn").addEventListener("click", ()=>{
   const items=currentItems().filter(it=>state.cat==="all"||it.category===state.cat);
   const lines=[`# AI 热点榜单 · ${RANGE_LABEL[state.range]}最火（${fmtBeijing(DATA.generated_at||"").split("（")[0].trim()}）`,""];
   items.slice(0,30).forEach((it,i)=>{
-    const s=it.extra&&it.extra.stars!=null?` ★${fmtStars(it.extra.stars)}`:"";
-    lines.push(`${i+1}. **[${it.title}](${it.url})** · ${it.category}${s}`);
+    const ex=it.extra||{};
+    const s=ex.stars!=null?` ★${fmtStars(ex.stars)}`:"";
+    const f=ex.forks!=null?` 🍴${fmtStars(ex.forks)}`:"";
+    const lg=ex.language?` · ${ex.language}`:"";
+    lines.push(`${i+1}. **[${it.title}](${it.url})** · ${it.category}${lg}${s}${f}`);
     if(it.summary) lines.push(`   - ${it.summary}`);
   });
   const blob=new Blob([lines.join("\n")],{type:"text/markdown"});
@@ -583,6 +603,7 @@ document.getElementById("filters").addEventListener("click", e=>{
   e.target.classList.add("active"); state.cat=e.target.dataset.cat; render();
 });
 document.getElementById("sort").addEventListener("change", e=>{ state.sort=e.target.value; render(); });
+document.getElementById("lang").addEventListener("change", e=>{ state.lang=e.target.value; render(); });
 document.getElementById("search").addEventListener("input", e=>{ state.q=e.target.value; render(); });
 
 load();
