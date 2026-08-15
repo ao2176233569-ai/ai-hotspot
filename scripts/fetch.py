@@ -59,8 +59,10 @@ load_dotenv()
 GH_TOPIC       = "machine-learning"
 GH_PER_PAGE    = 100
 GH_MIN_STARS   = 200
-GH_POOL_SIZE   = 500          # 候选池上限（5 页 × 100），覆盖绝大多数能算增量的库
+GH_POOL_SIZE   = 500          # 稳定头部候选池上限（5 页 × 100）
+GH_POOL_CAP    = 800          # 合并「稳定头部 + 上升新星」后的总候选池上限
 GH_PAGES       = 5
+GH_RISING_PAGES = 3           # 上升新星每个查询翻页数（控制 API 调用次数）
 
 KEEP_TOP_N     = 30           # 每个时间窗（当天/当月/当年）各取 Top 30
 
@@ -215,44 +217,68 @@ def _gh_token():
     return env("GH_TOKEN", "") or env("GITHUB_TOKEN", "")
 
 
+def _gh_search_once(q, page, token):
+    """对单个 GitHub Search 查询翻一页，返回原始 repo 列表（失败返回空）。"""
+    url = ("https://api.github.com/search/repositories?q=" + urllib.parse.quote(q) +
+           f"&sort=stars&order=desc&per_page={GH_PER_PAGE}&page={page}")
+    headers = {"User-Agent": "ai-hotspot", "Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.load(r)
+        return data.get("items", [])
+    except Exception as e:
+        log("github search failed:", q[:60], "page", page, "-", e)
+        return []
+
+
+def _normalize_repo(repo):
+    stars = repo.get("stargazers_count", 0) or 0
+    return {
+        "source": "github",
+        "category": classify(repo),
+        "title": repo.get("full_name", ""),
+        "url": repo.get("html_url", ""),
+        "description": (repo.get("description") or "")[:600],
+        "published": (repo.get("pushed_at") or "")[:10],
+        "raw_metric": float(stars),
+        "extra": {"stars": stars,
+                  "language": repo.get("language"),
+                  "topics": repo.get("topics", []),
+                  "created_at": repo.get("created_at") or ""},
+    }
+
+
 def fetch_github():
-    """抓取稳定候选池：topic=machine-learning + stars>阈值，按总 star 排序取前 N。
-    用稳定池（不按 pushed 过滤）才能持续累积历史、算出日/月/年 star 增量。"""
-    q = f"topic:{GH_TOPIC} stars:>{GH_MIN_STARS}"
+    """候选池 = 稳定头部(总 star 前 N) + 上升新星(近 2 年新建即爆红 / 近 60 天活跃的高 star 库)。
+    目的是让榜单出现真正在涨、新冒头的热门项目，而不是只把所有时间的巨头按总 star 排。"""
     token = _gh_token()
-    items = []
-    for page in range(1, GH_PAGES + 1):
-        url = ("https://api.github.com/search/repositories?q=" + urllib.parse.quote(q) +
-               f"&sort=stars&order=desc&per_page={GH_PER_PAGE}&page={page}")
-        headers = {"User-Agent": "ai-hotspot", "Accept": "application/vnd.github+json"}
-        if token:
-            headers["Authorization"] = "Bearer " + token
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as r:
-                data = json.load(r)
-        except Exception as e:
-            log("github fetch page", page, "failed:", e)
+    today = datetime.date.today()
+    recent_created = (today - datetime.timedelta(days=730)).isoformat()   # 近 2 年新建
+    recent_pushed = (today - datetime.timedelta(days=60)).isoformat()    # 近 60 天活跃
+    queries = [
+        (f"topic:{GH_TOPIC} stars:>{GH_MIN_STARS}", GH_PAGES),          # 稳定头部
+        (f"topic:{GH_TOPIC} stars:>300 created:>{recent_created}", GH_RISING_PAGES),  # 新建即爆红
+        (f"topic:{GH_TOPIC} stars:>300 pushed:>={recent_pushed}", GH_RISING_PAGES),  # 近期活跃热库
+    ]
+    items, seen = [], set()
+    for q, pages in queries:
+        for page in range(1, pages + 1):
+            for repo in _gh_search_once(q, page, token):
+                name = repo.get("full_name", "")
+                if name in seen:
+                    continue
+                seen.add(name)
+                items.append(_normalize_repo(repo))
+            if len(items) >= GH_POOL_CAP:
+                break
+            time.sleep(1)   # 放慢，避免触发 GitHub 搜索速率限制
+        if len(items) >= GH_POOL_CAP:
             break
-        for repo in data.get("items", []):
-            stars = repo.get("stargazers_count", 0) or 0
-            items.append({
-                "source": "github",
-                "category": classify(repo),
-                "title": repo.get("full_name", ""),
-                "url": repo.get("html_url", ""),
-                "description": (repo.get("description") or "")[:600],
-                "published": (repo.get("pushed_at") or "")[:10],
-                "raw_metric": float(stars),
-                "extra": {"stars": stars,
-                          "language": repo.get("language"),
-                          "topics": repo.get("topics", [])},
-            })
-        if len(items) >= GH_POOL_SIZE:
-            break
-        time.sleep(1)   # 放慢，避免触发 GitHub 搜索速率限制
-    items = items[:GH_POOL_SIZE]
-    log(f"github: {len(items)} items (pool)")
+    items = items[:GH_POOL_CAP]
+    log(f"github: {len(items)} items (pool, incl. rising stars)")
     return items
 
 
@@ -335,6 +361,25 @@ def compute_deltas(items, history):
         it["year_delta"]  = delta_for(history, it["title"], s, DELTA_YEAR)
 
 
+def add_velocity(items, history):
+    """给每个 item 算「日均涨星」(stars/day)：
+    - 有真实增量窗口时：增量 / 天数（当日=day_delta，当月=month_delta/30，当年=year_delta/365）。
+    - 首日无基线时：用 总star / 库龄 估算（估算值，非真实统计），让上升新星当天就能冒头。
+    排序改用 velocity 而非绝对增量，避免巨头永远霸榜，使新冒头、涨得猛的库浮到前面。"""
+    today = datetime.date.today()
+    for it in items:
+        s = it["extra"]["stars"]
+        ca = (it["extra"].get("created_at") or "")[:10]
+        try:
+            age = max(1, (today - datetime.date.fromisoformat(ca)).days)
+        except Exception:
+            age = 3650
+        it["extra"]["age_days"] = age
+        it["day_velocity"]   = (it["day_delta"]   / 1.0)   if it.get("day_delta")   is not None else s / age
+        it["month_velocity"] = (it["month_delta"] / 30.0)  if it.get("month_delta") is not None else s / age
+        it["year_velocity"]  = (it["year_delta"]  / 365.0) if it.get("year_delta")  is not None else s / age
+
+
 def score_all(items):
     """给每个 item 算 log 热度分（0~1），用于排序选项。"""
     if not items:
@@ -345,11 +390,12 @@ def score_all(items):
         it["heat_score"] = round(math.log10(it["raw_metric"] + 1) / log_mx, 4) if log_mx > 0 else 0
 
 
-def build_range(items, delta_key):
-    """按某时间窗的 star 增量降序取 Top N；无增量数据的排后面（按 star 总量兜底）。"""
+def build_range(items, vel_key):
+    """按某时间窗的「日均涨星」(velocity, stars/day) 降序取 Top N；
+    首日无基线时 velocity 由 总star/库龄 估算，仍能把上升新星排到前面。"""
     def sort_key(it):
-        d = it.get(delta_key)
-        return (d is not None, d if d is not None else 0, it["raw_metric"])
+        v = it.get(vel_key)
+        return (v is not None, v if v is not None else 0, it["raw_metric"])
     lst = sorted(items, key=sort_key, reverse=True)[:KEEP_TOP_N]
     out = []
     for i, it in enumerate(lst, 1):
@@ -362,10 +408,11 @@ def build_range(items, delta_key):
 def build_ranges(items, history):
     score_all(items)
     compute_deltas(items, history)
+    add_velocity(items, history)
     return {
-        "day":   build_range(items, "day_delta"),
-        "month": build_range(items, "month_delta"),
-        "year":  build_range(items, "year_delta"),
+        "day":   build_range(items, "day_velocity"),
+        "month": build_range(items, "month_velocity"),
+        "year":  build_range(items, "year_velocity"),
     }
 
 
