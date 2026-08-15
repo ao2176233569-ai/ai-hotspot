@@ -24,13 +24,10 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       UPLOAD_HISTORY: "1"
-      # 大模型摘要（未配置则走缓存 + 离线中文兜底，仍全中文）
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-      LLM_MODEL: ${{ secrets.LLM_MODEL }}
-      FALLBACK_API_KEY: ${{ secrets.FALLBACK_API_KEY }}
-      FALLBACK_BASE_URL: ${{ secrets.FALLBACK_BASE_URL }}
-      FALLBACK_MODEL: ${{ secrets.FALLBACK_MODEL }}
+      # 云端构建不调用实时 LLM（agnes 在 CI 不稳定且拖慢构建）：
+      # 摘要统一走 summaries_cache.json 缓存 + 离线中文词典兜底，保证全中文、~秒级。
+      LLM_API_KEY: ""
+      FALLBACK_API_KEY: ""
     steps:
       - uses: actions/checkout@v4
 
