@@ -150,23 +150,67 @@
   }
   .stat .num .u { font-size: 14px; color: var(--faint); margin-left: 3px; }
 
-  /* ============ 时间段 Tab ============ */
-  .rangetabs { display: flex; gap: 10px; margin: 30px 0 0; overflow-x: auto;
-    padding-bottom: 4px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
-  .rangetabs::-webkit-scrollbar { height: 6px; }
-  .rangetabs::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  /* ============ 时间段：滑动分段控制器 ============ */
+  .rangetabs {
+    position: relative; display: flex; gap: 0; margin: 30px 0 0; padding: 5px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.20);
+  }
+  .rangetabs .thumb {
+    position: absolute; top: 5px; bottom: 5px; left: 5px; z-index: 0;
+    width: calc((100% - 10px) / 3); border-radius: 12px;
+    background: linear-gradient(135deg, var(--hot), var(--hot-2));
+    box-shadow: 0 8px 22px var(--glow);
+    transition: transform .34s cubic-bezier(.34,1.2,.4,1);
+  }
   .rangetabs button {
-    flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--sub);
-    padding: 11px 22px; border-radius: 13px; cursor: pointer; font-size: 15px; font-weight: 600;
-    font-family: inherit; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;
-    transition: all .2s ease;
+    position: relative; z-index: 1; flex: 1 1 0; border: none; background: transparent; color: var(--sub);
+    padding: 11px 8px; border-radius: 12px; cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    transition: color .28s ease;
   }
-  .rangetabs button .ic { font-size: 16px; }
-  .rangetabs button:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-1px); }
-  .rangetabs button.active {
-    background: linear-gradient(135deg, var(--hot), var(--hot-2)); color: #fff;
-    border-color: transparent; box-shadow: 0 8px 22px var(--glow);
+  .rangetabs button .ic { font-size: 17px; filter: grayscale(.2); transition: filter .28s ease, transform .28s ease; }
+  .rangetabs button .tab-txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.18; }
+  .rangetabs button .tab-main { font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .rangetabs button .tab-cap { font-size: 10.5px; font-weight: 500; opacity: .62; white-space: nowrap; transition: opacity .28s ease; }
+  .rangetabs button:hover { color: var(--text); }
+  .rangetabs button.active { color: #fff; }
+  .rangetabs button.active .ic { filter: none; transform: scale(1.08); }
+  .rangetabs button.active .tab-cap { opacity: .82; }
+
+  /* ============ 语言筛选：主题化自定义下拉 ============ */
+  .lang-filter { position: relative; }
+  .lang-trigger {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; font-size: 13px;
+    background: var(--card); color: var(--text); transition: border-color .18s, box-shadow .18s, background .18s;
   }
+  .lang-trigger:hover { border-color: var(--line-strong); }
+  .lang-filter.open .lang-trigger { border-color: var(--hot); box-shadow: 0 0 0 3px var(--hot-soft); }
+  .lang-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: 0 0 auto; transition: background .18s; }
+  .lang-trigger .caret { font-size: 10px; color: var(--faint); transition: transform .22s ease; }
+  .lang-filter.open .lang-trigger .caret { transform: rotate(180deg); }
+  .lang-pop {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; min-width: 210px; max-height: 290px; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 14px; padding: 6px;
+    box-shadow: var(--shadow);
+    opacity: 0; transform: translateY(-6px) scale(.98); transform-origin: top right; pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .lang-pop::-webkit-scrollbar { width: 7px; }
+  .lang-pop::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+  .lang-filter.open .lang-pop { opacity: 1; transform: none; pointer-events: auto; }
+  .lang-opt {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none;
+    background: transparent; border-radius: 9px; font-size: 13px; color: var(--text);
+    cursor: pointer; font-family: inherit; text-align: left; transition: background .15s ease;
+  }
+  .lang-opt:hover { background: var(--card-hover); }
+  .lang-opt.active { background: var(--hot-soft); color: var(--hot); }
+  .lang-opt .lo-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+  .lang-opt .lo-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lang-opt .lo-count { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--faint); }
+  .lang-opt .lo-check { color: var(--hot); font-size: 12px; }
 
   /* ============ 工具栏 ============ */
   .toolbar {
@@ -288,6 +332,9 @@
     header.hero { padding-top: 40px; }
     .grid { grid-template-columns: 1fr; }
     .controls input { min-width: 100%; }
+    .rangetabs button { padding: 10px 4px; gap: 6px; }
+    .rangetabs button .tab-cap { display: none; }
+    .rangetabs button .tab-main { font-size: 13px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .card { transition: none; opacity: 1; transform: none; }
@@ -318,9 +365,19 @@
     </div>
 
     <div class="rangetabs" id="rangetabs">
-      <button data-range="day" class="active"><span class="ic">🔥</span>当天最火</button>
-      <button data-range="month"><span class="ic">📅</span>当月最火</button>
-      <button data-range="year"><span class="ic">🏆</span>当年最火</button>
+      <span class="thumb" id="rangeThumb"></span>
+      <button data-range="day" class="active">
+        <span class="ic">🔥</span>
+        <span class="tab-txt"><span class="tab-main">当天最火</span><span class="tab-cap">今日爆发</span></span>
+      </button>
+      <button data-range="month">
+        <span class="ic">📅</span>
+        <span class="tab-txt"><span class="tab-main">当月最火</span><span class="tab-cap">本月热度</span></span>
+      </button>
+      <button data-range="year">
+        <span class="ic">🏆</span>
+        <span class="tab-txt"><span class="tab-main">当年最火</span><span class="tab-cap">年度爆款</span></span>
+      </button>
     </div>
   </header>
 
@@ -332,7 +389,14 @@
         <option value="stars">按 Star 总量</option>
         <option value="time">按最新更新</option>
       </select>
-      <select id="lang"><option value="all">全部语言</option></select>
+      <div class="lang-filter" id="langFilter">
+        <button class="lang-trigger" id="langTrigger" type="button">
+          <span class="lang-dot" id="langDot"></span>
+          <span class="lang-label" id="langLabel">全部语言</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="lang-pop" id="langPop" role="listbox"></div>
+      </div>
       <input id="search" type="text" placeholder="搜索标题 / 摘要 / 标签…" />
       <button class="btn-ghost" id="exportBtn" title="导出当前榜单为 Markdown">⬇ 导出</button>
     </div>
@@ -450,17 +514,45 @@ function buildFilters(){
   order.forEach(c=>mk(c,c,state.cat===c));
 }
 
+const LANG_COLORS = {
+  "Python":"#3572A5","JavaScript":"#f1e05a","TypeScript":"#3178c6","C++":"#f34b7d","C":"#555555",
+  "C#":"#178600","Rust":"#dea584","Go":"#00ADD8","Java":"#b07219","HTML":"#e34c26",
+  "Jupyter Notebook":"#DA5B0B","Jupyter":"#DA5B0B","Shell":"#89e051","Vue":"#41b883","R":"#198CE7",
+  "Ruby":"#701516","Swift":"#F05138","Kotlin":"#A97BFF","Dart":"#00B4AB","Lua":"#000080",
+  "Zig":"#ec915c","Scala":"#c22d40","PHP":"#4F5D95","CSS":"#563d7c","Makefile":"#427819",
+  "Cuda":"#3A4E3A","Objective-C":"#438eff","PowerShell":"#012456","Elixir":"#6e4a7e","Haskell":"#5e5086"
+};
+function langColor(l){ return LANG_COLORS[l] || "#9aa4b2"; }
+
 function buildLangFilter(){
-  const langs = new Set();
-  ["day","month","year"].forEach(k=>(DATA.ranges[k]||[]).forEach(i=>{ const l=i.extra&&i.extra.language; if(l) langs.add(l); }));
-  const sel=document.getElementById("lang"); const cur=state.lang; sel.innerHTML="";
-  const o0=document.createElement("option"); o0.value="all"; o0.textContent="全部语言"; sel.appendChild(o0);
-  [...langs].sort().forEach(l=>{ const o=document.createElement("option"); o.value=l; o.textContent=l; sel.appendChild(o); });
-  sel.value = [...sel.options].some(o=>o.value===cur)?cur:"all";
+  const counts={};
+  ["day","month","year"].forEach(k=>(DATA.ranges[k]||[]).forEach(i=>{ const l=i.extra&&i.extra.language; if(l) counts[l]=(counts[l]||0)+1; }));
+  const langs=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  const pop=document.getElementById("langPop"); pop.innerHTML="";
+  const mkOpt=(name,color,count,val)=>{
+    const o=document.createElement("button");
+    o.type="button"; o.className="lang-opt"+(state.lang===val?" active":""); o.dataset.lang=val;
+    o.innerHTML=`<span class="lo-dot" style="background:${color}"></span>`+
+      `<span class="lo-name">${esc(name)}</span>`+
+      (count!=null?`<span class="lo-count">${count}</span>`:"")+
+      (state.lang===val?`<span class="lo-check">✓</span>`:"");
+    pop.appendChild(o);
+  };
+  mkOpt("全部语言","var(--faint)",null,"all");
+  langs.forEach(l=>mkOpt(l, langColor(l), counts[l], l));
+  updateLangTrigger();
+}
+function updateLangTrigger(){
+  const label=document.getElementById("langLabel");
+  const dot=document.getElementById("langDot");
+  if(state.lang==="all"){ label.textContent="全部语言"; dot.style.background="var(--faint)"; }
+  else { label.textContent=state.lang; dot.style.background=langColor(state.lang); }
 }
 
 function syncRangeUI(){
-  document.querySelectorAll("#rangetabs button").forEach(b=>{ b.classList.toggle("active", b.dataset.range === state.range); });
+  document.querySelectorAll("#rangetabs button").forEach(b=>b.classList.toggle("active", b.dataset.range === state.range));
+  const idx = {day:0, month:1, year:2}[state.range] || 0;
+  document.getElementById("rangeThumb").style.transform = `translateX(${idx*100}%)`;
 }
 
 function renderSkeletons(n){
@@ -610,8 +702,25 @@ document.getElementById("filters").addEventListener("click", e=>{
   e.target.classList.add("active"); state.cat=e.target.dataset.cat; render();
 });
 document.getElementById("sort").addEventListener("change", e=>{ state.sort=e.target.value; render(); });
-document.getElementById("lang").addEventListener("change", e=>{ state.lang=e.target.value; render(); });
 document.getElementById("search").addEventListener("input", e=>{ state.q=e.target.value; render(); });
+
+/* 语言自定义下拉 */
+document.getElementById("langTrigger").addEventListener("click", e=>{
+  e.stopPropagation();
+  document.getElementById("langFilter").classList.toggle("open");
+});
+document.getElementById("langPop").addEventListener("click", e=>{
+  const o=e.target.closest(".lang-opt"); if(!o) return;
+  state.lang=o.dataset.lang;
+  document.querySelectorAll("#langPop .lang-opt").forEach(x=>x.classList.toggle("active", x.dataset.lang===state.lang));
+  updateLangTrigger();
+  document.getElementById("langFilter").classList.remove("open");
+  render();
+});
+document.addEventListener("click", e=>{
+  const lf=document.getElementById("langFilter");
+  if(lf.classList.contains("open") && !lf.contains(e.target)) lf.classList.remove("open");
+});
 
 load();
 </script>
