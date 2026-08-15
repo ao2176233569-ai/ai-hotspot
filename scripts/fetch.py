@@ -150,49 +150,274 @@ def load_cache():
 
 load_cache()
 
-# 常用 AI/ML 术语 → 中文，用于离线兜底翻译（按长度降序匹配，避免短词误伤长词）
+# 离线兜底翻译词典：把英文描述翻译成「以中文为主、专有名词保留英文」的摘要。
+# 分三块：① 多词短语/术语 ② 名词 ③ 动词/形容词；功能词单独在 FUNCTION_WORDS 处理。
+# 中文技术写作中保留 Python/PyTorch/GPT/Claude/API 等专有名词是正常且专业的，
+# 因此这里只翻译普通英文词，让结果读起来是中文而非「英文里夹几个中文词」。
 TERM_ZH = {
+    # ---- 多词短语 / 技术术语（长优先） ----
     "machine learning": "机器学习", "deep learning": "深度学习",
     "neural network": "神经网络", "neural networks": "神经网络",
     "natural language processing": "自然语言处理",
-    "large language model": "大语言模型", "language model": "语言模型",
-    "language models": "语言模型", "reinforcement learning": "强化学习",
-    "transfer learning": "迁移学习", "fine-tuning": "微调", "fine tuning": "微调",
-    "pretraining": "预训练", "pretrained": "预训练", "pre-trained": "预训练",
-    "inference": "推理", "serving": "服务部署", "deployment": "部署",
-    "framework": "框架", "library": "库", "libraries": "库", "toolkit": "工具包",
-    "tool": "工具", "tools": "工具", "api": "API", "sdk": "SDK", "cli": "命令行工具",
-    "model": "模型", "models": "模型", "dataset": "数据集", "datasets": "数据集",
-    "training": "训练", "optimizer": "优化器", "quantization": "量化",
-    "embedding": "嵌入", "embeddings": "嵌入向量", "vector database": "向量数据库",
-    "vector": "向量", "retrieval": "检索", "search": "搜索", "semantic": "语义",
-    "rag": "检索增强", "agent": "智能体", "agents": "智能体",
-    "multi-agent": "多智能体", "workflow": "工作流", "diffusion model": "扩散模型",
-    "diffusion": "扩散", "text-to-image": "文生图", "image generation": "图像生成",
-    "image": "图像", "images": "图像", "video": "视频", "audio": "音频",
-    "speech": "语音", "voice": "语音", "tts": "语音合成", "asr": "语音识别",
-    "music": "音乐", "ocr": "文字识别", "segmentation": "分割", "detection": "检测",
-    "object detection": "目标检测", "transformer": "Transformer", "gpt": "GPT",
-    "llm": "大语言模型", "moe": "混合专家", "pytorch": "PyTorch",
+    "large language model": "大语言模型", "large language models": "大语言模型",
+    "language model": "语言模型", "language models": "语言模型",
+    "reinforcement learning": "强化学习", "transfer learning": "迁移学习",
+    "fine-tuning": "微调", "fine tuning": "微调", "fine-tune": "微调",
+    "finetune": "微调", "pretraining": "预训练", "pretrained": "预训练",
+    "pre-trained": "预训练", "vector database": "向量数据库",
+    "semantic search": "语义搜索", "text-to-image": "文生图",
+    "text-to-video": "文生视频", "text to image": "文生图",
+    "image generation": "图像生成", "image-generation": "图像生成",
+    "image-to-3d": "图生3D", "object detection": "目标检测",
+    "speech recognition": "语音识别", "real-time": "实时", "real time": "实时",
+    "state-of-the-art": "最先进的", "open-source": "开源", "open source": "开源",
+    "high-performance": "高性能", "low-latency": "低延迟",
+    "end-to-end": "端到端", "out-of-the-box": "开箱即用",
+    "production-ready": "可用于生产", "cutting-edge": "前沿的",
+    "generative ai": "生成式 AI", "multi-agent": "多智能体",
+    "model context protocol": "模型上下文协议",
+    "retrieval augmented": "检索增强", "retrieval-augmented": "检索增强",
+    "diffusion model": "扩散模型", "mixture of experts": "混合专家",
+    "mixture-of-experts": "混合专家", "self-hosted": "可自托管",
+    "self hosted": "可自托管", "knowledge graph": "知识图谱",
+    "vector store": "向量库", "code-only": "纯代码",
+    "quality-gated": "质量门控", "animation-ready": "可动画",
+    "token-efficient": "省 token 的", "research-first": "研究优先",
+    "landing pages": "落地页", "landing page": "落地页",
+    "image-to-image": "图生图", "text-to-speech": "文生语音",
+    "voice cloning": "声音克隆", "speech synthesis": "语音合成",
+
+    # ---- 名词 ----
+    "neural": "神经", "network": "网络", "networks": "网络",
+    "algorithm": "算法", "algorithms": "算法",
+    "model": "模型", "models": "模型", "framework": "框架", "library": "库",
+    "libraries": "库", "toolkit": "工具包", "tool": "工具", "tools": "工具",
+    "engine": "引擎", "agent": "智能体", "agents": "智能体",
+    "application": "应用", "applications": "应用", "app": "应用", "apps": "应用",
+    "system": "系统", "platform": "平台", "solution": "方案", "project": "项目",
+    "code": "代码", "codebase": "代码库", "dataset": "数据集", "datasets": "数据集",
+    "data": "数据", "image": "图像", "images": "图像", "video": "视频",
+    "text": "文本", "audio": "音频", "speech": "语音", "voice": "语音",
+    "language": "语言", "chat": "对话", "chatbot": "对话机器人",
+    "document": "文档", "documents": "文档", "docs": "文档",
+    "file": "文件", "files": "文件", "browser": "浏览器", "memory": "记忆",
+    "cache": "缓存", "database": "数据库", "pipeline": "流水线",
+    "pipelines": "流水线", "graph": "图", "node": "节点", "nodes": "节点",
+    "service": "服务", "module": "模块", "modules": "模块",
+    "plugin": "插件", "plugins": "插件", "extension": "扩展",
+    "server": "服务端", "client": "客户端", "interface": "界面", "ui": "界面",
+    "api": "API", "sdk": "SDK", "cli": "命令行", "web": "Web", "bot": "机器人",
+    "notebook": "笔记本", "template": "模板", "templates": "模板",
+    "example": "示例", "examples": "示例", "tutorial": "教程", "tutorials": "教程",
+    "course": "课程", "benchmark": "基准测试", "benchmarks": "基准测试",
+    "embedding": "嵌入", "embeddings": "嵌入向量", "vector": "向量",
+    "retrieval": "检索", "search": "搜索", "semantic": "语义", "rag": "检索增强",
+    "transformer": "Transformer", "gpt": "GPT", "llm": "大语言模型",
+    "llms": "大语言模型", "moe": "混合专家", "pytorch": "PyTorch",
     "tensorflow": "TensorFlow", "jax": "JAX", "python": "Python",
-    "gpu": "GPU", "acceleration": "加速", "accelerate": "加速",
-    "distributed": "分布式", "scalable": "可扩展", "open source": "开源",
-    "open-source": "开源", "real-time": "实时", "real time": "实时",
-    "benchmark": "基准测试", "benchmarks": "基准测试", "tutorial": "教程",
-    "tutorials": "教程", "course": "课程", "courses": "课程", "examples": "示例",
-    "chatbot": "对话机器人", "chat": "对话", "prompt": "提示词", "prompts": "提示词",
-    "observability": "可观测性", "monitoring": "监控", "document": "文档",
-    "documents": "文档", "documentation": "文档", "photo": "照片", "photos": "照片",
-    "management": "管理", "platform": "平台", "quant": "量化",
-    "quantitative": "量化", "finance": "金融", "financial": "金融",
-    "research": "研究", "pipeline": "流水线", "pipelines": "流水线",
-    "automation": "自动化", "generative": "生成式", "generative ai": "生成式 AI",
-    "agentic": "智能体化", "mcp": "模型上下文协议", "copilot": "编程助手",
+    "gpu": "GPU", "cpu": "CPU", "cuda": "CUDA", "docker": "Docker",
+    "kubernetes": "Kubernetes", "prompt": "提示词", "prompts": "提示词",
+    "reasoning": "推理", "inference": "推理", "serving": "服务部署",
+    "deployment": "部署", "quantization": "量化", "quant": "量化",
+    "lora": "LoRA", "qlora": "QLoRA", "rlhf": "RLHF", "sft": "监督微调",
+    "distillation": "蒸馏", "accelerate": "加速", "acceleration": "加速",
+    "distributed": "分布式", "scalable": "可扩展", "monitoring": "监控",
+    "observability": "可观测性", "management": "管理", "automation": "自动化",
+    "generative": "生成式", "diffusion": "扩散", "segmentation": "分割",
+    "detection": "检测", "ocr": "文字识别", "photo": "照片", "photos": "照片",
+    "music": "音乐", "sound": "声音", "research": "研究", "finance": "金融",
+    "financial": "金融", "agentic": "智能体化", "copilot": "编程助手",
+    "mcp": "模型上下文协议", "workflow": "工作流", "workflows": "工作流",
+    "documentation": "文档", "wrapper": "封装", "wrappers": "封装",
+    "bridge": "桥接", "port": "移植", "portable": "可移植的",
+    "schema": "模式", "schemas": "模式", "config": "配置", "configs": "配置",
+    "skill": "技能", "skills": "技能", "edge": "关系边", "edges": "关系边",
+    "ast": "AST", "sql": "SQL", "pdf": "PDF", "html": "HTML", "pptx": "PPTX",
+    "mp4": "MP4", "prototype": "原型", "prototypes": "原型", "slide": "幻灯片",
+    "slides": "幻灯片", "dashboard": "仪表盘", "dashboards": "仪表盘",
+    "export": "导出", "reference": "参考", "object": "物体",
+    "token": "token", "tokens": "token", "developer": "开发者", "dev": "开发者",
+    "harness": "harness", "plugin": "插件", "alternative": "替代方案",
+    "desktop": "桌面", "app": "应用", "room": "环境",
+
+    # ---- 动词 ----
+    "build": "构建", "building": "构建", "built": "构建",
+    "train": "训练", "training": "训练", "trained": "训练",
+    "deploy": "部署", "deploying": "部署", "deployed": "部署",
+    "create": "创建", "creating": "创建", "created": "创建",
+    "make": "制作", "making": "制作", "made": "制作",
+    "generate": "生成", "generating": "生成", "generated": "生成",
+    "use": "使用", "using": "使用", "used": "使用",
+    "run": "运行", "running": "运行", "runs": "运行",
+    "support": "支持", "supports": "支持", "supported": "支持",
+    "provide": "提供", "provides": "提供", "provided": "提供",
+    "manage": "管理", "managing": "管理", "managed": "管理",
+    "optimize": "优化", "optimizing": "优化", "optimized": "优化",
+    "implement": "实现", "implementing": "实现", "implemented": "实现",
+    "develop": "开发", "developing": "开发", "developed": "开发",
+    "process": "处理", "processing": "处理", "processed": "处理",
+    "interact": "交互", "interactive": "交互式", "explore": "探索",
+    "discover": "发现", "convert": "转换", "transform": "转换",
+    "translate": "翻译", "find": "查找", "detect": "检测", "recognize": "识别",
+    "classify": "分类", "segment": "分割", "edit": "编辑", "render": "渲染",
+    "stream": "流式", "streaming": "流式", "download": "下载",
+    "install": "安装", "configure": "配置", "connect": "连接",
+    "integrate": "集成", "integrating": "集成", "extend": "扩展",
+    "scale": "扩展", "monitor": "监控", "visualize": "可视化",
+    "visualisation": "可视化", "automate": "自动化", "test": "测试",
+    "debug": "调试", "learn": "学习", "learning": "学习",
+    "think": "思考", "grows": "成长", "grow": "成长", "growing": "成长",
+    "turn": "把…变成", "turns": "把…变成", "rebuild": "重建",
+    "cut": "削减", "cuts": "削减", "cutting": "削减", "talking": "对话",
+    "explain": "解释", "explained": "可解释", "query": "查询",
+    "queryable": "可查询的", "parse": "解析", "parsing": "解析",
+    "deterministic": "确定性的", "local": "本地", "becomes": "成为",
+
+    # ---- 形容词 / 副词 ----
+    "easy": "易用的", "simple": "简洁的", "simplest": "最简洁的",
+    "powerful": "强大的", "fast": "快速的", "faster": "更快的",
+    "fastest": "最快的", "efficient": "高效的", "efficiently": "高效地",
+    "lightweight": "轻量的", "minimal": "极简的", "minimalist": "极简的",
+    "high": "高", "higher": "更高", "highest": "最高", "low": "低",
+    "lower": "更低", "modern": "现代的", "flexible": "灵活的",
+    "robust": "鲁棒的", "free": "免费的", "advanced": "先进的",
+    "native": "原生的", "cross-platform": "跨平台的", "modular": "模块化的",
+    "customizable": "可定制的", "extensible": "可扩展的", "beautiful": "美观的",
+    "clean": "简洁的", "popular": "热门的", "official": "官方的",
+    "community": "社区", "unofficial": "非官方的", "experimental": "实验性的",
+    "stable": "稳定的", "unified": "统一的", "complete": "完整的",
+    "fully": "完全地", "production": "生产", "ready": "就绪",
+    "open": "开源", "lazy": "偷懒的", "laziest": "最懒的", "senior": "资深",
+    "best": "最佳", "never": "从未", "wrote": "写过", "every": "每个",
+    "few": "少量", "many": "许多", "why": "为何", "trick": "奏效", "do": "做",
+    "queryable": "可查询的", "local-first": "本地优先", "real": "真实的",
+    "procedural": "程序化的", "quality": "质量", "animation": "动画",
+    "reference": "参考", "deterministic": "确定性的",
 }
+
+# 功能词 / 介词 / 连词（带空格边界，逐词替换；首字母大写也能匹配）
+FUNCTION_WORDS = {
+    " a ": "一个", " an ": "一个", " the ": "",
+    " and ": " 与 ", " or ": " 或 ", " for ": " 用于 ",
+    " with ": " 带 ", " to ": " 以 ", " of ": " 的 ",
+    " in ": " 在 ", " on ": " 于 ", " by ": " 通过 ",
+    " from ": " 来自 ", " that ": " 该 ", " this ": " 此 ",
+    " your ": "你的", " you ": "你", " you'll ": "你将", " you can ": "你可",
+    " it ": "它", " its ": "其", " is ": " 是 ", " are ": " 是 ",
+    " be ": " 是 ", " was ": " 曾 ", " will ": " 将 ", " can ": " 可 ",
+    " can't ": " 无法 ", " cannot ": " 无法 ", " them ": "它们",
+    " their ": "它们的", " they ": "它们", " we ": "我们", " our ": "我们的",
+    " all ": "全部", " any ": "任意", " some ": "一些", " not ": "不",
+    " no ": "无", " without ": "无需", " as ": "作为", " at ": "在",
+    " into ": "成为", " onto ": "到", " more ": "更多", " most ": "最",
+    " less ": "更少", " than ": "于", " if ": "若", " when ": "当",
+    " while ": "同时", " you've ": "你已", " you're ": "你是",
+    " i ": "我", " he ": "他", " she ": "她", " his ": "他的",
+    " her ": "她的", " my ": "我的", " me ": "我", " do ": "做",
+    " does ": "做", " did ": "做过", " have ": "有", " has ": "有",
+    " had ": "曾", " like ": "像", " so ": "因此", " but ": "但",
+    " because ": "因为", " which ": "其",     " who ": "其",
+}
+
+# 补充：常见剩余英文词（动词/形容词/名词/副词），进一步降低残留英文
+TERM_ZH.update({
+    "everything": "一切", "makes": "让", "gives": "给", "give": "给",
+    "good": "好的", "taste": "品味", "world": "世界", "world's": "世界",
+    "first": "首个", "global": "全球", "intelligence": "智能", "where": "在",
+    "co-evolve": "协同进化", "job": "求职", "bash": "Bash", "need": "需要",
+    "original": "原创的", "meta": "元", "curated": "精选的", "list": "清单",
+    "lists": "清单", "resources": "资源", "customizing": "定制",
+    "control plane": "控制平面", "catalog": "目录", "discovery": "发现",
+    "owned": "自有", "selection": "选择", "persistent": "持久的",
+    "context": "上下文", "across": "跨", "sessions": "会话", "captures": "捕获",
+    "during": "期间", "clone": "克隆", "website": "网站", "websites": "网站",
+    "command": "命令", "live": "实时", "runtime": "运行时", "stops": "停止",
+    "never": "从不", "coding": "编程", "brings": "带来", "power": "能力",
+    "powers": "驱动", "directly": "直接", "terminal": "终端",
+    "accessible": "可访问", "scrape": "抓取", "interact": "交互",
+    "extended": "扩展的", "long-horizon": "长程", "superagent": "超级智能体",
+    "researches": "研究", "financial": "金融", "trading": "交易", "multi": "多",
+    "powered": "驱动", "stock": "股票", "analysis": "分析",
+    "multi-market": "多市场", "market": "市场", "news": "新闻",
+    "decision": "决策", "dashboard": "看板", "push": "推送", "auto": "自动",
+    "zero-cost": "零成本", "scheduled": "定时", "runs": "运行", "native": "原生",
+    "personal": "个人", "webui": "Web 界面", "compress": "压缩", "outputs": "输出",
+    "logs": "日志", "chunks": "分块", "before": "在…之前", "reach": "到达",
+    "reduces": "降低", "consumption": "消耗", "common": "常见", "proxy": "代理",
+    "fleet": "集群", "parallel": "并行", "working": "工作", "omni": "全能",
+    "route": "路由", "monitor": "监控", "harness": "框架",
+    "battle-tested": "久经考验", "best-benchmarked": "基准表现最佳",
+    "world's first": "世界首个", "good taste": "好品味", "nano": "轻量",
+    "curated list": "精选清单", "control-plane": "控制平面",
+    "everything's": "一切", "ade": "ADE",
+})
+
+# 已知专有名词 / 缩写：翻译时保留英文（中文技术写作中保留这些是正常的）
+PROPER_NOUNS = {
+    "ai", "agi", "api", "sdk", "cli", "web", "sql", "pdf", "html", "pptx", "mp4",
+    "llm", "moe", "rag", "gpt", "ast", "byok", "cuda", "cpu", "gpu", "docker",
+    "kubernetes", "pytorch", "tensorflow", "jax", "claude", "codex", "cursor",
+    "gemini", "openai", "anthropic", "meta", "google", "alibaba", "xiaomi",
+    "huggingface", "deepseek", "three.js", "github", "orca", "mcp", "sft",
+    "rlhf", "lora", "qlora", "tts", "asr", "ocr", "vlm", "ml", "dl", "nlp",
+    "cv", "ide", "ui",
+    # 编程语言 / 运行时（中文技术文保留英文是常态）
+    "token", "python", "bash", "javascript", "typescript", "rust", "golang",
+    "go", "java", "node", "nodejs", "c++", "cpp", "ruby", "php", "scala",
+    "kotlin", "swift", "vue", "react", "angular", "linux", "windows", "macos",
+}
+
+# 单 token 功能词（无空格边界，逐词翻译；与 TERM_ZH 单词条合并成查表）
+FUNCTION_TOK = {
+    "a": "一个", "an": "一个", "the": "", "and": "与", "or": "或", "for": "用于",
+    "with": "带", "to": "以", "of": "的", "in": "在", "on": "于", "by": "通过",
+    "from": "来自", "that": "该", "this": "此", "your": "你的", "you": "你",
+    "you'll": "你将", "you can": "你可", "it": "它", "its": "其", "is": "是",
+    "are": "是", "be": "是", "was": "曾", "will": "将", "can": "可",
+    "can't": "无法", "cannot": "无法", "them": "它们", "their": "它们的",
+    "they": "它们", "we": "我们", "our": "我们的", "all": "全部", "any": "任意",
+    "some": "一些", "not": "不", "no": "无", "without": "无需", "as": "作为",
+    "at": "在", "into": "成为", "onto": "到", "more": "更多", "most": "最",
+    "less": "更少", "than": "于", "if": "若", "when": "当", "while": "同时",
+    "you've": "你已", "you're": "你是", "i": "我", "he": "他", "she": "她",
+    "his": "他的", "her": "她的", "my": "我的", "me": "我", "do": "做",
+    "does": "做", "did": "做过", "have": "有", "has": "有", "had": "曾",
+    "like": "像", "so": "因此", "but": "但", "because": "因为",
+    "which": "其", "who": "其",
+}
+
+# 合并单 token 翻译表：TERM_ZH 中无空格的条目 + 功能词
+_TOKEN_ZH = {}
+for _k, _v in TERM_ZH.items():
+    if " " not in _k:
+        _TOKEN_ZH[_k.lower()] = _v
+_TOKEN_ZH.update(FUNCTION_TOK)
+
+
+def _cjk_count(s):
+    return len(re.findall(r'[一-鿿]', s))
+
+
+def _cjk_ratio(s):
+    if not s:
+        return 0
+    cjk = _cjk_count(s)
+    alpha = sum(1 for ch in s if ch.isalpha() and ord(ch) < 128)
+    return cjk / alpha if alpha else 1.0
+
+
+def _strip_emoji(s):
+    """去掉开头的装饰性 emoji / 符号，中文简介更干净。"""
+    return re.sub(r'^[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\s]+', '', s).strip()
 
 
 def offline_zh_summary(it):
-    """LLM / 缓存都不可用时，用术语词典把英文描述翻译出一句可信的中文摘要。"""
+    """LLM / 缓存都不可用时，用大词典把英文描述翻译为「以中文为主、专有名词保留英文」的摘要。
+
+    做法：先替换含空格的多词短语，再把句子拆成 token 逐词翻译（避免英文词与中文粘连
+    导致漏译），未知英文词直接丢弃（已知专有名词 Claude/GPU/API 与数字保留），
+    从而彻底消除旧版「英文里夹几个中文词」的半翻译问题，中文模式读起来是完整中文。
+    """
     title = it["title"]
     if title in CACHE:
         return CACHE[title]
@@ -200,12 +425,36 @@ def offline_zh_summary(it):
     if not desc:
         return "（暂无简介）"
     seg = re.split(r'(?<=[.!?])\s', desc)[0]   # 取第一句
-    for term in sorted(TERM_ZH, key=len, reverse=True):
+    # 1) 先替换含空格的多词短语（术语），避免被拆成单 token 漏译
+    for term in sorted((k for k in TERM_ZH if " " in k), key=len, reverse=True):
         if re.search(r'(?i)\b' + re.escape(term) + r'\b', seg):
             seg = re.sub(r'(?i)\b' + re.escape(term) + r'\b', TERM_ZH[term], seg)
-    seg = seg.strip()
-    if len(seg) > 70:
-        seg = seg[:70] + "…"
+    # 2) 拆成 token（英文词 / 中文串 / 中文标点），逐 token 翻译
+    toks = re.findall(r"[A-Za-z0-9_.+\-]+|[一-鿿]+|[，。、：；！？]", seg)
+    out = []
+    for w in toks:
+        if re.fullmatch(r"[A-Za-z0-9_.+\-]+", w):
+            wl = w.lower()
+            if wl in _TOKEN_ZH:
+                out.append(_TOKEN_ZH[wl])
+            elif wl in PROPER_NOUNS or wl.rstrip("s") in PROPER_NOUNS \
+                    or re.fullmatch(r'[0-9][0-9%.+\-]*', w):
+                out.append(w)          # 已知专有名词 / 数字 → 保留
+            # 其余未知英文词 → 丢弃，消除半英文
+        else:
+            out.append(w)              # 中文 / 标点 → 保留
+    seg = "".join(out)
+    # 3) 清理多余空格、中文标点前的空格，去开头 emoji
+    seg = re.sub(r'\s+', ' ', seg).strip()
+    seg = re.sub(r'\s+([，。、：；！？])', r'\1', seg)
+    seg = _strip_emoji(seg)
+    # 4) 翻译太稀疏 → 退回分类式中文简介
+    if _cjk_count(seg) < 2:
+        cat = it.get("category") or "其他"
+        name = title.split("/")[-1]
+        return f"{name}：一个 {cat} 方向的 GitHub 开源 AI 项目。"
+    if len(seg) > 80:
+        seg = seg[:80] + "…"
     return "（简介）" + seg
 
 
