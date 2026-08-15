@@ -9,6 +9,9 @@ __pycache__/
 # 生成的运行产物（如需保留历史榜单可删掉此行）
 public/data.json
 
+# star 增量历史（由 workflow 经 gh 写回仓库，不进 git）
+stars_history.json
+
 # 本地项目记忆（不进仓库）
 .workbuddy/
 
