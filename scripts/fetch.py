@@ -24,11 +24,19 @@ import re
 import json
 import math
 import time
+import copy
 import argparse
 import datetime
 import urllib.request
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def env(key, default):
+    """读环境变量；为空或仅空白时回退到默认值（避免空 Secret 覆盖默认配置）。"""
+    v = os.environ.get(key, "")
+    v = v.strip()
+    return v if v else default
+
 
 # ---------------- 配置 ----------------
 def load_dotenv(path=".env"):
@@ -46,13 +54,24 @@ def load_dotenv(path=".env"):
                 os.environ[k] = v
 load_dotenv()
 
-# GitHub 抓取：围绕一个宽泛的 AI topic，取近期活跃且 star 较高的项目
+# GitHub 抓取：围绕一个宽泛的 AI topic，取总 star 较高的项目组成"稳定候选池"。
+# 用稳定池才能持续累积 star 历史、算出日/月/年增量（避免用 pushed 过滤把老牌库排除）。
 GH_TOPIC       = "machine-learning"
-GH_PER_PAGE    = 30
-GH_MIN_STARS   = 100
-GH_RECENT_DAYS = 30
+GH_PER_PAGE    = 100
+GH_MIN_STARS   = 200
+GH_POOL_SIZE   = 500          # 候选池上限（5 页 × 100），覆盖绝大多数能算增量的库
+GH_PAGES       = 5
 
-KEEP_TOP_N     = 30
+KEEP_TOP_N     = 30           # 每个时间窗（当天/当月/当年）各取 Top 30
+
+# star 增量窗口（天）
+DELTA_DAY   = 1
+DELTA_MONTH = 30
+DELTA_YEAR  = 365
+
+# star 历史快照文件（每次构建写回，用于算增量）。不进 git，由 workflow 用 gh 上传/下载。
+HISTORY_PATH = env("HISTORY_PATH", "stars_history.json")
+HISTORY_KEEP_DAYS = 400       # 只保留最近 400 天快照，控制文件体积
 
 # 摘要阶段保护：总预算 + 单次超时，保证构建绝不卡在 LLM 上
 SUMMARY_DEADLINE_SEC = 18 * 60   # 到点后剩余项直接走兜底摘要
@@ -81,12 +100,6 @@ CAT_KEYWORDS = [
                     "api", "sdk", "benchmark", "dataset", "data"]),
 ]
 
-
-def env(key, default):
-    """读环境变量；为空或仅空白时回退到默认值（避免空 Secret 覆盖默认配置）。"""
-    v = os.environ.get(key, "")
-    v = v.strip()
-    return v if v else default
 
 PRIMARY = {
     "base":  env("LLM_BASE_URL", "https://apihub.agnes-ai.com/v1"),
@@ -198,52 +211,162 @@ def classify(repo):
 
 
 # ---------------- 抓取：GitHub ----------------
+def _gh_token():
+    return env("GH_TOKEN", "") or env("GITHUB_TOKEN", "")
+
+
 def fetch_github():
-    since = (datetime.date.today() - datetime.timedelta(days=GH_RECENT_DAYS)).isoformat()
-    q = f"topic:{GH_TOPIC} stars:>{GH_MIN_STARS} pushed:>{since}"
-    url = ("https://api.github.com/search/repositories?q=" + urllib.parse.quote(q) +
-           f"&sort=stars&order=desc&per_page={GH_PER_PAGE}")
-    try:
-        req = urllib.request.Request(
-            url, headers={"User-Agent": "ai-hotspot",
-                          "Accept": "application/vnd.github+json"})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.load(r)
-    except Exception as e:
-        log("github fetch failed:", e)
-        return []
+    """抓取稳定候选池：topic=machine-learning + stars>阈值，按总 star 排序取前 N。
+    用稳定池（不按 pushed 过滤）才能持续累积历史、算出日/月/年 star 增量。"""
+    q = f"topic:{GH_TOPIC} stars:>{GH_MIN_STARS}"
+    token = _gh_token()
     items = []
-    for repo in data.get("items", []):
-        stars = repo.get("stargazers_count", 0) or 0
-        items.append({
-            "source": "github",
-            "category": classify(repo),
-            "title": repo.get("full_name", ""),
-            "url": repo.get("html_url", ""),
-            "description": (repo.get("description") or "")[:600],
-            "published": (repo.get("pushed_at") or "")[:10],
-            "raw_metric": float(stars),
-            "extra": {"stars": stars,
-                      "language": repo.get("language"),
-                      "topics": repo.get("topics", [])},
-        })
-    log(f"github: {len(items)} items")
+    for page in range(1, GH_PAGES + 1):
+        url = ("https://api.github.com/search/repositories?q=" + urllib.parse.quote(q) +
+               f"&sort=stars&order=desc&per_page={GH_PER_PAGE}&page={page}")
+        headers = {"User-Agent": "ai-hotspot", "Accept": "application/vnd.github+json"}
+        if token:
+            headers["Authorization"] = "Bearer " + token
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = json.load(r)
+        except Exception as e:
+            log("github fetch page", page, "failed:", e)
+            break
+        for repo in data.get("items", []):
+            stars = repo.get("stargazers_count", 0) or 0
+            items.append({
+                "source": "github",
+                "category": classify(repo),
+                "title": repo.get("full_name", ""),
+                "url": repo.get("html_url", ""),
+                "description": (repo.get("description") or "")[:600],
+                "published": (repo.get("pushed_at") or "")[:10],
+                "raw_metric": float(stars),
+                "extra": {"stars": stars,
+                          "language": repo.get("language"),
+                          "topics": repo.get("topics", [])},
+            })
+        if len(items) >= GH_POOL_SIZE:
+            break
+        time.sleep(1)   # 放慢，避免触发 GitHub 搜索速率限制
+    items = items[:GH_POOL_SIZE]
+    log(f"github: {len(items)} items (pool)")
     return items
 
 
-# ---------------- 打分 ----------------
-def score(items):
-    """仅 GitHub 单一来源：用 star 数的 log 缩放做热度分（0~1），更直观。"""
+# ---------------- star 历史（用于算增量） ----------------
+def load_history(path):
+    try:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        log("history load failed:", e)
+    return {}
+
+
+def upload_history_to_repo(path):
+    """用 gh CLI 把本地 history 文件 PUT 回仓库（需 GH_TOKEN 且仓库可写）。失败仅告警。"""
+    import subprocess, base64
+    gh = os.environ.get("GH_CLI") or "gh"
+    repo = os.environ.get("GITHUB_REPOSITORY") or "ao2176233569-ai/ai-hotspot"
+    api = f"/repos/{repo}/contents/stars_history.json"
+    try:
+        sha = None
+        p = subprocess.run([gh, "api", api, "--jq", ".sha"],
+                           capture_output=True, text=True, timeout=30)
+        if p.returncode == 0 and p.stdout.strip():
+            sha = p.stdout.strip()
+        with open(path, "rb") as f:
+            content = base64.b64encode(f.read()).decode("ascii")
+        cmd = [gh, "api", "--method", "PUT", api,
+               "-f", f"message=chore: update star history ({datetime.date.today().isoformat()})",
+               "-f", f"content={content}"]
+        if sha:
+            cmd += ["-f", f"sha={sha}"]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if r.returncode == 0:
+            log("history uploaded to repo")
+        else:
+            log("history upload failed:", r.stderr[:200])
+    except Exception as e:
+        log("history upload error:", e)
+
+
+def save_history(history, path, today, current_map):
+    """把今天的快照写入 history（保留最近 HISTORY_KEEP_DAYS 天），并视情况上传到仓库。"""
+    history[today] = current_map
+    dates = sorted(history.keys())
+    if len(dates) > HISTORY_KEEP_DAYS:
+        for d in dates[:-HISTORY_KEEP_DAYS]:
+            history.pop(d, None)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=1, sort_keys=True)
+    except Exception as e:
+        log("history write local failed:", e)
+    if os.environ.get("UPLOAD_HISTORY") == "1":
+        upload_history_to_repo(path)
+
+
+def delta_for(history, full_name, current_stars, days_back):
+    """返回 days_back 天前的 star 增量（current - 历史快照）。找不到更早快照返回 None。"""
+    today = datetime.date.today()
+    target = (today - datetime.timedelta(days=days_back)).isoformat()
+    best = None
+    for d in history:                      # history 形如 {date: {full_name: stars}}
+        if d <= target and (best is None or d > best):
+            best = d
+    if best is None:
+        return None
+    past = history[best].get(full_name)
+    if past is None:
+        return None
+    return max(0, current_stars - past)
+
+
+def compute_deltas(items, history):
+    for it in items:
+        s = it["extra"]["stars"]
+        it["day_delta"]   = delta_for(history, it["title"], s, DELTA_DAY)
+        it["month_delta"] = delta_for(history, it["title"], s, DELTA_MONTH)
+        it["year_delta"]  = delta_for(history, it["title"], s, DELTA_YEAR)
+
+
+def score_all(items):
+    """给每个 item 算 log 热度分（0~1），用于排序选项。"""
     if not items:
-        return items
+        return
     mx = max((it["raw_metric"] for it in items), default=1) or 1
     log_mx = math.log10(mx + 1)
     for it in items:
         it["heat_score"] = round(math.log10(it["raw_metric"] + 1) / log_mx, 4) if log_mx > 0 else 0
-    items.sort(key=lambda x: x["heat_score"], reverse=True)
-    for i, it in enumerate(items, 1):
-        it["rank"] = i
-    return items[:KEEP_TOP_N]
+
+
+def build_range(items, delta_key):
+    """按某时间窗的 star 增量降序取 Top N；无增量数据的排后面（按 star 总量兜底）。"""
+    def sort_key(it):
+        d = it.get(delta_key)
+        return (d is not None, d if d is not None else 0, it["raw_metric"])
+    lst = sorted(items, key=sort_key, reverse=True)[:KEEP_TOP_N]
+    out = []
+    for i, it in enumerate(lst, 1):
+        c = copy.deepcopy(it)
+        c["rank"] = i
+        out.append(c)
+    return out
+
+
+def build_ranges(items, history):
+    score_all(items)
+    compute_deltas(items, history)
+    return {
+        "day":   build_range(items, "day_delta"),
+        "month": build_range(items, "month_delta"),
+        "year":  build_range(items, "year_delta"),
+    }
 
 
 # ---------------- 大模型摘要 ----------------
@@ -337,6 +460,7 @@ def DEMO_ITEMS():
          "description": "Official implementation of DeepSeek-V3, a strong Mixture-of-Experts language model with 671B total parameters.",
          "published": today, "raw_metric": 95000.0,
          "summary": "DeepSeek-V3 官方实现，671B 参数的 MoE 旗舰语言模型。",
+         "day_delta": 320, "month_delta": 5200, "year_delta": 95000,
          "extra": {"stars": 95000, "language": "Python", "topics": ["llm", "moe", "pytorch"]}},
         {"source": "github", "category": "推理 / 部署",
          "title": "vllm-project/vllm",
@@ -344,6 +468,7 @@ def DEMO_ITEMS():
          "description": "A high-throughput and memory-efficient inference and serving engine for LLMs.",
          "published": today, "raw_metric": 38000.0,
          "summary": "高吞吐、省显存的大模型推理与服务引擎。",
+         "day_delta": 85, "month_delta": 1800, "year_delta": 30000,
          "extra": {"stars": 38000, "language": "Python", "topics": ["llm", "inference", "serving"]}},
         {"source": "github", "category": "多模态 / 视觉",
          "title": "comfyanonymous/ComfyUI",
@@ -351,6 +476,7 @@ def DEMO_ITEMS():
          "description": "The most powerful and modular diffusion model GUI, API and backend with a graph/node based interface.",
          "published": today, "raw_metric": 72000.0,
          "summary": "基于节点图的最强模块化扩散模型可视化与推理后端。",
+         "day_delta": 150, "month_delta": 2400, "year_delta": 60000,
          "extra": {"stars": 72000, "language": "Python", "topics": ["diffusion", "stable-diffusion", "image-generation"]}},
         {"source": "github", "category": "智能体 / Agent",
          "title": "langchain-ai/langchain",
@@ -358,6 +484,7 @@ def DEMO_ITEMS():
          "description": "Build context-aware reasoning applications with LLMs. Frameworks for agents, RAG and orchestration.",
          "published": today, "raw_metric": 95000.0,
          "summary": "面向 LLM 应用的开发框架，内置 Agent、RAG 与编排能力。",
+         "day_delta": 40, "month_delta": 800, "year_delta": 90000,
          "extra": {"stars": 95000, "language": "Python", "topics": ["llm", "agents", "framework"]}},
         {"source": "github", "category": "检索增强 / RAG",
          "title": "run-llama/llama_index",
@@ -365,6 +492,7 @@ def DEMO_ITEMS():
          "description": "LlamaIndex is a data framework for your LLM applications to ingest, structure and retrieve private data.",
          "published": today, "raw_metric": 38000.0,
          "summary": "面向 LLM 的数据框架，专注私有数据的检索增强（RAG）。",
+         "day_delta": 60, "month_delta": 900, "year_delta": 35000,
          "extra": {"stars": 38000, "language": "Python", "topics": ["rag", "llm", "retrieval"]}},
         {"source": "github", "category": "语音 / 音频",
          "title": "openai/whisper",
@@ -372,6 +500,7 @@ def DEMO_ITEMS():
          "description": "Robust speech recognition via large-scale weak supervision. Approach to multilingual ASR and translation.",
          "published": today, "raw_metric": 75000.0,
          "summary": "OpenAI 开源的强鲁棒性多语种语音识别（ASR）模型。",
+         "day_delta": 20, "month_delta": 400, "year_delta": 70000,
          "extra": {"stars": 75000, "language": "Python", "topics": ["speech", "asr", "audio"]}},
         {"source": "github", "category": "训练 / 微调",
          "title": "hiyouga/LLaMA-Factory",
@@ -379,6 +508,7 @@ def DEMO_ITEMS():
          "description": "Easy and efficient LLM fine-tuning with LoRA, QLoRA and RLHF. Supports hundreds of models.",
          "published": today, "raw_metric": 42000.0,
          "summary": "易用的 LLM 微调框架，支持 LoRA / QLoRA / RLHF。",
+         "day_delta": 110, "month_delta": 2600, "year_delta": 40000,
          "extra": {"stars": 42000, "language": "Python", "topics": ["llm", "lora", "fine-tuning"]}},
         {"source": "github", "category": "框架 / 工具",
          "title": "huggingface/transformers",
@@ -386,6 +516,7 @@ def DEMO_ITEMS():
          "description": "State-of-the-art Machine Learning for PyTorch, JAX and TensorFlow. Thousands of pretrained models.",
          "published": today, "raw_metric": 140000.0,
          "summary": "最流行的深度学习模型库，集成数千个预训练模型。",
+         "day_delta": 95, "month_delta": 1500, "year_delta": 130000,
          "extra": {"stars": 140000, "language": "Python", "topics": ["pytorch", "transformers", "nlp"]}},
         {"source": "github", "category": "多模态 / 视觉",
          "title": "facebookresearch/segment-anything",
@@ -393,6 +524,7 @@ def DEMO_ITEMS():
          "description": "The Segment Anything Model (SAM): a foundation model for image segmentation with promptable masks.",
          "published": today, "raw_metric": 48000.0,
          "summary": "Meta 的 SAM：可提示驱动的通用图像分割基础模型。",
+         "day_delta": 15, "month_delta": 300, "year_delta": 46000,
          "extra": {"stars": 48000, "language": "Python", "topics": ["computer-vision", "segmentation", "vision"]}},
         {"source": "github", "category": "智能体 / Agent",
          "title": "microsoft/autogen",
@@ -400,8 +532,24 @@ def DEMO_ITEMS():
          "description": "A framework that enables development of LLM applications using multiple agents that can converse.",
          "published": today, "raw_metric": 40000.0,
          "summary": "微软开源的多智能体对话框架，用于编排 LLM 应用。",
+         "day_delta": 70, "month_delta": 1100, "year_delta": 38000,
          "extra": {"stars": 40000, "language": "Python", "topics": ["llm", "multi-agent", "framework"]}},
     ]
+
+
+def DEMO_HISTORY():
+    """用 DEMO_ITEMS 里预设的增量反推历史快照，使预览模式下三榜单呈现真实差异。"""
+    today = datetime.date.today()
+    d1 = (today - datetime.timedelta(days=1)).isoformat()
+    d30 = (today - datetime.timedelta(days=30)).isoformat()
+    d365 = (today - datetime.timedelta(days=365)).isoformat()
+    h = {d1: {}, d30: {}, d365: {}}
+    for it in DEMO_ITEMS():
+        s = it["extra"]["stars"]
+        h[d1][it["title"]]   = s - it["day_delta"]
+        h[d30][it["title"]]  = s - it["month_delta"]
+        h[d365][it["title"]] = s - it["year_delta"]
+    return h
 
 
 # ---------------- 主流程 ----------------
@@ -414,28 +562,34 @@ def main():
 
     if args.demo:
         items = DEMO_ITEMS()
+        history = DEMO_HISTORY()      # 内置快照，让三榜单在预览里有真实差异
     else:
         items = fetch_github()
-
-    items = score(items)
-
-    if not args.demo:
+        history = load_history(HISTORY_PATH)
         summarize_all(items, workers=6)
         log("all summaries done")
-    else:
-        for it in items:
-            it.setdefault("summary", "")
+        today = datetime.date.today().isoformat()
+        current_map = {it["title"]: it["extra"]["stars"] for it in items}
+        save_history(history, HISTORY_PATH, today, current_map)
+
+    ranges = build_ranges(items, history)
+
+    if args.demo:
+        for rng in ranges.values():
+            for it in rng:
+                it.setdefault("summary", "")
 
     out = {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "source": "github",
+        "mode": "star-delta",
         "categories": CATEGORIES,
-        "count": len(items),
-        "items": items,
+        "ranges": ranges,
+        "count": {k: len(v) for k, v in ranges.items()},
     }
     with open("public/data.json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
-    log(f"wrote public/data.json with {len(items)} items")
+    log(f"wrote public/data.json: day={len(ranges['day'])} month={len(ranges['month'])} year={len(ranges['year'])}")
 
 
 if __name__ == "__main__":
